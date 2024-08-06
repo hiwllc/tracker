@@ -16,7 +16,7 @@ export default function Auth() {
       </SignedOut>
 
       <SignedIn>
-        <Button size="sm" className="gap-2 group">
+        <Button size="sm" className="gap-2 group" asChild>
           <Link href="/dashboard">
             Dashboard
             <MoveRight className="size-4 group-hover:translate-x-1 transition-transform" />{" "}

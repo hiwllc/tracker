@@ -15,6 +15,13 @@
       "when": 1722945028076,
       "tag": "0001_plain_stardust",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1722946303368,
+      "tag": "0002_polite_kinsey_walden",
+      "breakpoints": true
     }
   ]
 }

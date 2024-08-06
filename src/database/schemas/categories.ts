@@ -1,4 +1,6 @@
+import { relations } from "drizzle-orm";
 import { pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { transactions } from "./transactions";
 
 export const categoriesType = pgEnum("categories_type", ["INCOME", "OUTCOME"]);
 export const categoriesSource = pgEnum("categories_source", ["SYSTEM", "USER"]);
@@ -16,3 +18,7 @@ export const categories = pgTable("categories", {
   updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true }),
   deletedAt: timestamp("deleted_at", { mode: "date", withTimezone: true }),
 });
+
+export const categoriesRelations = relations(categories, ({ many }) => ({
+  transactions: many(transactions),
+}));

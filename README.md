@@ -2,7 +2,9 @@
 > tracker/finance
 
 ## Todo
-- Autenticação (clerk)
+- Onboarding
+  - Setar Saldo Inicial
+  - Redirect after signup
 - Categorias
   - Transporte
   - Moradia
@@ -20,3 +22,4 @@
     - Mensal
     - Anual
     - Parcelado
+- On delete user, delete all data

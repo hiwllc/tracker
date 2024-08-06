@@ -1,10 +1,9 @@
-import { format, startOfMonth, endOfMonth, addDays } from "date-fns";
+import { format, startOfMonth, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   CalendarIcon,
   MoveLeftIcon,
   MoveRightIcon,
-  PlusIcon,
   ThumbsDownIcon,
   ThumbsUpIcon,
 } from "lucide-react";
@@ -18,6 +17,8 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
+import { CreateTransactionForm } from "./components/create-transaction-form";
+import { currency } from "~/lib/formatters";
 
 const trxs = [
   {
@@ -58,16 +59,7 @@ const trxs = [
   },
 ];
 
-const formatter = (value: number) => {
-  const intl = new Intl.NumberFormat("pt-BR", {
-    currency: "BRL",
-    style: "currency",
-  });
-
-  return intl.format(value / 100);
-};
-
-export default function DashboardPage() {
+export default async function DashboardPage() {
   const start = startOfMonth(new Date());
 
   return (
@@ -94,16 +86,13 @@ export default function DashboardPage() {
         </div>
 
         <div className="flex gap-2">
-          <Button className="h-8 gap-2">
-            <PlusIcon className="size-4" />
-            Adicionar
-          </Button>
+          <CreateTransactionForm />
         </div>
       </section>
 
       <section className="flex flex-col text-balance py-6">
         <h3 className="font-mono text-sm">Saldo atual</h3>
-        <h2 className="font-mono text-2xl font-bold">R$ 8.000,00</h2>
+        <h2 className="font-mono text-2xl font-bold">R$ 10,69</h2>
       </section>
 
       <Card>
@@ -120,7 +109,7 @@ export default function DashboardPage() {
                 <TableRow key={trx.name}>
                   <TableCell>{trx.name}</TableCell>
                   <TableCell>{trx.category.name}</TableCell>
-                  <TableCell>{formatter(trx.value)}</TableCell>
+                  <TableCell>{currency(trx.value)}</TableCell>
                   <TableCell>{format(trx.dueDate, "dd/MM/yyyy")}</TableCell>
                   <TableCell>
                     <div className="flex items-center justify-end">

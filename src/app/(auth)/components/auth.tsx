@@ -1,9 +1,11 @@
+"use client";
+
 import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
 import { MoveRight } from "lucide-react";
 import Link from "next/link";
 import { Button } from "~/components/ui/button";
 
-export default function Auth() {
+export function Auth() {
   return (
     <>
       <SignedOut>

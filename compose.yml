@@ -1,0 +1,14 @@
+services:
+  database:
+    image: postgres
+    container_name: tracker-database
+    restart: always
+    shm_size: 128mb
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_DB: tracker
+      POSTGRES_USER: tracker
+      POSTGRES_PASSWORD: tracker
+    volumes:
+      - ./.database:/var/lib/postgresql/data

@@ -8,6 +8,13 @@
       "when": 1722944442955,
       "tag": "0000_same_vivisector",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1722945028076,
+      "tag": "0001_plain_stardust",
+      "breakpoints": true
     }
   ]
 }

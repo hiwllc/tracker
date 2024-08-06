@@ -5,7 +5,7 @@ export const categoriesSource = pgEnum("categories_source", ["SYSTEM", "USER"]);
 
 export const categories = pgTable("categories", {
   id: uuid("id").primaryKey().defaultRandom(),
-  uid: text("user_id"),
+  user: text("user_id"),
   name: text("name").notNull(),
   description: text("description"),
   type: categoriesType("type").default("OUTCOME").notNull(),

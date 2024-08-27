@@ -52,3 +52,5 @@ export const transactionsRelations = relations(transactions, ({ one }) => ({
     references: [categories.id],
   }),
 }));
+
+export type Transaction = typeof transactions.$inferSelect;

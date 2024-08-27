@@ -38,6 +38,7 @@ import {
 } from "~/components/ui/popover";
 import { Calendar } from "~/components/ui/calendar";
 import { ptBR } from "date-fns/locale";
+import { Category } from "~/database/schemas";
 
 const schema = z.object({
   type: z.enum(["INCOME", "OUTCOME"]),
@@ -51,7 +52,11 @@ const schema = z.object({
 
 type Schema = z.infer<typeof schema>;
 
-export function CreateTransactionForm() {
+type Props = {
+  categories: Array<Array<Pick<Category, "id" | "name">>>;
+};
+
+export function CreateTransactionForm({ categories: tuple }: Props) {
   const form = useForm<Schema>({
     defaultValues: {
       type: "OUTCOME",
@@ -63,6 +68,9 @@ export function CreateTransactionForm() {
       interval: "UNIQUE",
     },
   });
+
+  const type = form.watch("type");
+  const categories = type === "INCOME" ? tuple.at(0) : tuple.at(1);
 
   return (
     <Dialog>
@@ -138,10 +146,11 @@ export function CreateTransactionForm() {
                       </SelectTrigger>
 
                       <SelectContent>
-                        <SelectItem value="123456">Transporte</SelectItem>
-                        <SelectItem value="123457">Moradia</SelectItem>
-                        <SelectItem value="123458">Educação</SelectItem>
-                        <SelectItem value="123459">Freelance</SelectItem>
+                        {(categories ?? []).map((category) => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </FormControl>

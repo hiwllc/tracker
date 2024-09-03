@@ -1,7 +1,7 @@
 "use client";
 
 import { format } from "date-fns";
-import { ThumbsDownIcon, ThumbsUpIcon } from "lucide-react";
+import { LoaderIcon, ThumbsDownIcon, ThumbsUpIcon } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent } from "~/components/ui/card";
 import {
@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
-import { Transaction } from "~/database/schemas";
+import { Category, Transaction } from "~/database/schemas";
 import { currency } from "~/lib/formatters";
 import {
   createColumnHelper,
@@ -20,26 +20,118 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import { Badge } from "~/components/ui/badge";
+import { useServerAction } from "zsa-react";
+import { updateTransactionPaidStatus } from "../../actions/update-transaction-paid";
 
-type Transactions = Array<Transaction>;
+type TransactionWithCategory = Transaction & {
+  category: Pick<Category, "name">;
+};
 
-const column = createColumnHelper<Transaction>();
+const column = createColumnHelper<TransactionWithCategory>();
 
 type Props = {
-  transactions: Array<Transaction>;
+  transactions: Array<TransactionWithCategory>;
 };
 
 export function ListTransactionsTable({ transactions }: Props) {
+  const { execute, isPending } = useServerAction(updateTransactionPaidStatus);
+
   const columns = [
     column.accessor("name", {
       header: "Transação",
     }),
-  ];
+    column.accessor("category", {
+      header: "",
+      id: "category",
+      cell: (props) => {
+        const category = props.getValue();
 
-  // categoria
-  // valor
-  // vencimento
-  // pago ou não
+        return <Badge variant="outline">{category.name}</Badge>;
+      },
+    }),
+    column.accessor("value", {
+      header: "",
+      id: "value",
+      cell: (props) => currency(props.getValue() ?? 0),
+    }),
+    column.accessor("dueAt", {
+      header: "",
+      id: "due",
+      cell: (props) => format(props.getValue() as Date, "dd/MM/yyyy"),
+    }),
+    column.accessor("paidAt", {
+      header: "",
+      id: "paid",
+      cell: (props) => {
+        const trx = props.row.original;
+
+        if (trx.paidAt) {
+          return (
+            <div className="flex items-center justify-end">
+              <Button
+                size="icon"
+                className="size-8 p-0"
+                variant="ghost"
+                onClick={() => execute({ id: trx.id, paid: false })}
+                disabled={isPending}
+                aria-disabled={isPending}
+              >
+                {isPending ? (
+                  <>
+                    <LoaderIcon className="size-4 animate-spin" />
+                    <span className="sr-only">
+                      Alterando transação para não paga ou não recebida
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <ThumbsDownIcon className="size-4" />
+                    <span className="sr-only">
+                      Marcar a transação {trx.name} como não paga ou não
+                      recebida.
+                    </span>
+                  </>
+                )}
+              </Button>
+            </div>
+          );
+        }
+
+        if (!trx.paidAt) {
+          return (
+            // @todo trocar isso aqui para form
+            <div className="flex items-center justify-end">
+              <Button
+                size="icon"
+                className="size-8 p-0"
+                variant="ghost"
+                onClick={() => execute({ id: trx.id, paid: true })}
+                disabled={isPending}
+                aria-disabled={isPending}
+              >
+                {isPending ? (
+                  <>
+                    <LoaderIcon className="size-4 animate-spin" />
+                    <span className="sr-only">
+                      Alterando transação para paga ou recebida
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <ThumbsUpIcon className="size-4" />
+                    <span className="sr-only">
+                      Marcar a transação {trx.name} como paga ou recebida.
+                    </span>
+                  </>
+                )}
+              </Button>
+            </div>
+          );
+        }
+      },
+    }),
+  ];
 
   const table = useReactTable({
     columns,
@@ -51,37 +143,32 @@ export function ListTransactionsTable({ transactions }: Props) {
     <Card>
       <CardContent className="p-0">
         <Table>
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((header) => (
-                <TableRow key={header.id}>
-                  {header.headers.map((header) => (
-                    <TableHead key={header.id}>
-                      {flexRender(
-                        header.column.columnDef.header,
-                        header.getContext(),
-                      )}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
+          <TableHeader>
+            {table.getHeaderGroups().map((header) => (
+              <TableRow key={header.id}>
+                {header.headers.map((header) => (
+                  <TableHead key={header.id}>
+                    {flexRender(
+                      header.column.columnDef.header,
+                      header.getContext(),
+                    )}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
 
-            <TableBody>
-              {table.getCoreRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <TableBody>
+            {table.getCoreRowModel().rows.map((row) => (
+              <TableRow key={row.id}>
+                {row.getVisibleCells().map((cell) => (
+                  <TableCell key={cell.id}>
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
         </Table>
       </CardContent>
     </Card>

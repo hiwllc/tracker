@@ -6,3 +6,7 @@ export const currency = (value: number) => {
 
   return intl.format(value / 100);
 };
+
+export const number = (value: string) => {
+  return Number(value.replace(/\D+/g, ""));
+};

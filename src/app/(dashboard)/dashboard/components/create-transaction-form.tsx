@@ -26,7 +26,7 @@ import {
   DialogTrigger,
 } from "~/components/ui/dialog";
 import { Button } from "~/components/ui/button";
-import { CalendarIcon, PlusIcon } from "lucide-react";
+import { CalendarIcon, LoaderIcon, PlusIcon } from "lucide-react";
 import { Input } from "~/components/ui/input";
 import { currency } from "~/lib/formatters";
 import { Textarea } from "~/components/ui/textarea";
@@ -39,16 +39,10 @@ import {
 import { Calendar } from "~/components/ui/calendar";
 import { ptBR } from "date-fns/locale";
 import { Category } from "~/database/schemas";
-
-const schema = z.object({
-  type: z.enum(["INCOME", "OUTCOME"]),
-  name: z.string().min(1, "Adicione um nome para sua transação"),
-  value: z.string(),
-  description: z.string(),
-  category: z.string(),
-  dueDate: z.date({ coerce: true }),
-  interval: z.enum(["DAILY", "WEEKLY", "MONTHLY", "YEARLY", "UNIQUE"]),
-});
+import { schema } from "../../schemas";
+import { useServerAction } from "zsa-react";
+import { createTransactionAction } from "../../actions/create-transaction-action";
+import { useDisclosure } from "~/hooks/use-disclosure";
 
 type Schema = z.infer<typeof schema>;
 
@@ -57,6 +51,14 @@ type Props = {
 };
 
 export function CreateTransactionForm({ categories: tuple }: Props) {
+  const { isOpened, toggle } = useDisclosure({ initialState: "closed" });
+
+  const { execute, isPending } = useServerAction(createTransactionAction, {
+    onFinish(result) {
+      toggle();
+    },
+  });
+
   const form = useForm<Schema>({
     defaultValues: {
       type: "OUTCOME",
@@ -72,8 +74,12 @@ export function CreateTransactionForm({ categories: tuple }: Props) {
   const type = form.watch("type");
   const categories = type === "INCOME" ? tuple.at(0) : tuple.at(1);
 
+  const onSubmit = async (data: Schema) => {
+    await execute(data);
+  };
+
   return (
-    <Dialog>
+    <Dialog open={isOpened} onOpenChange={toggle}>
       <DialogTrigger asChild>
         <Button className="h-8 gap-2">
           <PlusIcon className="size-4" />
@@ -90,7 +96,7 @@ export function CreateTransactionForm({ categories: tuple }: Props) {
         </DialogHeader>
 
         <Form {...form}>
-          <form className="space-y-4">
+          <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
             <FormField
               control={form.control}
               name="type"
@@ -233,8 +239,17 @@ export function CreateTransactionForm({ categories: tuple }: Props) {
               )}
             />
 
-            <Button size="sm" className="w-full">
-              Adicionar
+            <Button
+              size="sm"
+              className="w-full"
+              disabled={isPending}
+              aria-disabled={isPending}
+            >
+              {isPending ? (
+                <LoaderIcon className="size-4 animate-spin" />
+              ) : (
+                "Adicionar"
+              )}
             </Button>
           </form>
         </Form>

@@ -8,6 +8,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { categories } from "./categories";
 import { relations } from "drizzle-orm";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 
 export const transactionsType = pgEnum("transactions_type", [
   "INCOME",
@@ -31,7 +32,7 @@ export const transactions = pgTable("transactions", {
   type: transactionsType("type").default("OUTCOME").notNull(),
   interval: transactionsInterval("interval").default("UNIQUE").notNull(),
   installments: integer("installments"),
-  value: integer("value"),
+  value: integer("value").notNull(),
   category: uuid("category_id")
     .notNull()
     .references(() => categories.id, {
@@ -41,7 +42,7 @@ export const transactions = pgTable("transactions", {
     .defaultNow()
     .notNull(),
   dueAt: timestamp("due_at", { mode: "date", withTimezone: true }).notNull(),
-  paidAt: timestamp("due_at", { mode: "date", withTimezone: true }),
+  paidAt: timestamp("paid_at", { mode: "date", withTimezone: true }),
   updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true }),
   deletedAt: timestamp("deleted_at", { mode: "date", withTimezone: true }),
 });
@@ -54,3 +55,5 @@ export const transactionsRelations = relations(transactions, ({ one }) => ({
 }));
 
 export type Transaction = typeof transactions.$inferSelect;
+
+export const createTransactionSchema = createInsertSchema(transactions);

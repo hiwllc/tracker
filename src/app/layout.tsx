@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ptBR } from "@clerk/localizations";
+import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 import { ThemeProvider } from "~/components/theme/provider";
 
@@ -25,6 +26,8 @@ export default function RootLayout({
           >
             {children}
           </ThemeProvider>
+
+          <Analytics />
         </body>
       </html>
     </ClerkProvider>

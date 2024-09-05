@@ -1,5 +1,6 @@
 import { ToggleTheme } from "~/components/theme/toggle";
 import { Auth } from "./components/auth";
+import { Logo } from "~/components/logo";
 
 export default function Home() {
   return (
@@ -7,7 +8,7 @@ export default function Home() {
       <main className="min-h-dvh grid grid-rows-[80px_1fr_80px]">
         <header>
           <div className="container flex h-20 items-center justify-between">
-            <h1 className="font-semibold font-mono text-xs">tracker</h1>
+            <Logo />
             <Auth />
           </div>
         </header>

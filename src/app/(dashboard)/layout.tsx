@@ -1,6 +1,6 @@
 import { UserButton } from "@clerk/nextjs";
-import Link from "next/link";
 import { ReactNode } from "react";
+import { Logo } from "~/components/logo";
 import { ToggleTheme } from "~/components/theme/toggle";
 
 export default function DashboardLayout({
@@ -12,9 +12,7 @@ export default function DashboardLayout({
     <div className="w-full min-h-dvh">
       <header className="w-full">
         <div className="container h-20 flex items-center justify-between">
-          <h1 className="font-mono text-sm font-medium">
-            <Link href="/dashboard">tracker</Link>
-          </h1>
+          <Logo />
 
           <div className="flex gap-2">
             <UserButton

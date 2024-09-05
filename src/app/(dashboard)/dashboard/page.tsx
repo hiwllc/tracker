@@ -24,6 +24,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "~/components/ui/accordion";
+import { CreateInitialBalance } from "./components/create-initial-balance";
 
 type Params = {
   date: string;
@@ -55,6 +56,8 @@ export default async function DashboardPage({
 
   return (
     <>
+      <CreateInitialBalance defaultOpen={!balance} />
+
       <div className="container">
         <header className="hidden md:flex items-center justify-between">
           <div className="flex gap-2">

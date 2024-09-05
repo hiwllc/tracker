@@ -5,6 +5,15 @@ import { and, desc, eq, gte, isNull, lt, lte, sum } from "drizzle-orm";
 import { endOfMonth, startOfMonth } from "date-fns";
 
 export const Balance = {
+  create: async (value: number) => {
+    const { userId } = auth();
+
+    return db.insert(balance).values({
+      balance: value,
+      user: String(userId),
+    });
+  },
+
   get: async () => {
     const { userId } = auth();
 

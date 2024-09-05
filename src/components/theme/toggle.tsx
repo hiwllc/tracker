@@ -10,7 +10,7 @@ import {
 import { Button } from "../ui/button";
 import { MoonIcon, SunIcon } from "lucide-react";
 
-export function ToggleTheme() {
+export function ToggleTheme({ align = "end" }: { align?: "start" | "end" }) {
   const { setTheme } = useTheme();
 
   return (
@@ -22,7 +22,7 @@ export function ToggleTheme() {
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align={align}>
         <DropdownMenuItem onClick={() => setTheme("light")}>
           Claro
         </DropdownMenuItem>

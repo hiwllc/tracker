@@ -1,7 +1,7 @@
 "use client";
 
 import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
-import { format, startOfMonth } from "date-fns";
+import { startOfMonth } from "date-fns";
 import { MoveRight } from "lucide-react";
 import Link from "next/link";
 import { Button } from "~/components/ui/button";

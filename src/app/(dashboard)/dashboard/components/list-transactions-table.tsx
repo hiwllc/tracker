@@ -7,6 +7,7 @@ import {
   PlusIcon,
   ThumbsDownIcon,
   ThumbsUpIcon,
+  TrashIcon,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent } from "~/components/ui/card";
@@ -31,6 +32,7 @@ import { useServerAction } from "zsa-react";
 import { updateTransactionPaidStatus } from "../../actions/update-transaction-paid";
 import { useState } from "react";
 import { useMediaQuery } from "~/hooks/use-media-query";
+import { deleteTranasctionAction } from "../../actions/delete-transaction-action";
 
 const column = createColumnHelper<Transaction>();
 
@@ -40,7 +42,9 @@ type Props = {
 
 export function ListTransactionsTable({ transactions }: Props) {
   const [updating, setUpdating] = useState<string | null>(null);
-  const { execute, isPending } = useServerAction(updateTransactionPaidStatus);
+  const update = useServerAction(updateTransactionPaidStatus);
+  const remove = useServerAction(deleteTranasctionAction);
+
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
   const columns = [
@@ -96,26 +100,26 @@ export function ListTransactionsTable({ transactions }: Props) {
       cell: (props) => format(props.getValue() as Date, "dd/MM/yyyy"),
     }),
     column.accessor("paidAt", {
-      header: "",
+      header: "Ações",
       id: "paid",
       cell: (props) => {
         const trx = props.row.original;
 
-        if (trx.paidAt) {
-          return (
-            <div className="flex items-center justify-end">
+        return (
+          <div className="flex items-center gap-2 justify-end">
+            {trx.paidAt ? (
               <Button
                 size="icon"
                 className="size-8 p-0"
                 variant="ghost"
                 onClick={() => {
                   setUpdating(trx.id);
-                  execute({ id: trx.id, paid: false });
+                  update.execute({ id: trx.id, paid: false });
                 }}
-                disabled={isPending && updating === trx.id}
-                aria-disabled={isPending && updating === trx.id}
+                disabled={update.isPending && updating === trx.id}
+                aria-disabled={update.isPending && updating === trx.id}
               >
-                {isPending && updating === trx.id ? (
+                {update.isPending && updating === trx.id ? (
                   <>
                     <LoaderIcon className="size-4 animate-spin" />
                     <span className="sr-only">
@@ -132,25 +136,21 @@ export function ListTransactionsTable({ transactions }: Props) {
                   </>
                 )}
               </Button>
-            </div>
-          );
-        }
+            ) : null}
 
-        if (!trx.paidAt) {
-          return (
-            <div className="flex items-center justify-end">
+            {!trx.paidAt ? (
               <Button
                 size="icon"
                 className="size-8 p-0"
                 variant="ghost"
                 onClick={() => {
                   setUpdating(trx.id);
-                  execute({ id: trx.id, paid: true });
+                  update.execute({ id: trx.id, paid: true });
                 }}
-                disabled={isPending && updating === trx.id}
-                aria-disabled={isPending && updating === trx.id}
+                disabled={update.isPending && updating === trx.id}
+                aria-disabled={update.isPending && updating === trx.id}
               >
-                {isPending && updating === trx.id ? (
+                {update.isPending && updating === trx.id ? (
                   <>
                     <LoaderIcon className="size-4 animate-spin" />
                     <span className="sr-only">
@@ -166,9 +166,35 @@ export function ListTransactionsTable({ transactions }: Props) {
                   </>
                 )}
               </Button>
-            </div>
-          );
-        }
+            ) : null}
+
+            <Button
+              size="icon"
+              className="size-8 p-0"
+              variant="ghost"
+              onClick={() => {
+                setUpdating(trx.id);
+                remove.execute({ id: trx.id });
+              }}
+              disabled={remove.isPending && updating === trx.id}
+              aria-disabled={remove.isPending && updating === trx.id}
+            >
+              {remove.isPending && updating === trx.id ? (
+                <>
+                  <LoaderIcon className="size-4 animate-spin" />
+                  <span className="sr-only">Removendo esta transação.</span>
+                </>
+              ) : (
+                <>
+                  <TrashIcon className="size-4" />
+                  <span className="sr-only">
+                    Remover a transação {trx.name}.
+                  </span>
+                </>
+              )}
+            </Button>
+          </div>
+        );
       },
     }),
   ];

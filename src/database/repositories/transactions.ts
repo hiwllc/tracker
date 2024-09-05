@@ -20,6 +20,20 @@ const createTransactionPayload = createTransactionSchema.omit({
   updatedAt: true,
 });
 
+const updateTransactionPayload = createTransactionSchema
+  .merge(
+    z.object({
+      id: z.string().uuid(),
+      name: z.string().optional(),
+      value: z.number().optional(),
+      category: z.string().uuid().optional(),
+      dueAt: z.date().optional(),
+    }),
+  )
+  .omit({
+    user: true,
+  });
+
 export const Transactions = {
   all: async ({
     date = startOfMonth(new Date()),
@@ -71,11 +85,15 @@ export const Transactions = {
     });
   },
 
-  // @todo update transaction data (with the due date is in the future don't change the balance)
-  // @todo update transaction data (with the due date is in the past change the balance)
+  remove: async (id: string) => {
+    const { userId } = auth();
 
-  // @todo delete transaction (with the due date is in the future don't change the balance)
-  // @todo delete transaction (with the due date is in the past change the balance)
+    return db
+      .delete(transactions)
+      .where(
+        and(eq(transactions.id, id), eq(transactions.user, String(userId))),
+      );
+  },
 
   updatePaidStatus: async ({ paid, id }: { paid: boolean; id: string }) => {
     const { userId } = auth();

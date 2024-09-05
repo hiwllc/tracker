@@ -18,6 +18,12 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "~/components/ui/accordion";
 
 type Params = {
   date: string;
@@ -50,7 +56,7 @@ export default async function DashboardPage({
   return (
     <>
       <div className="container">
-        <section className="hidden md:flex items-center justify-between">
+        <header className="hidden md:flex items-center justify-between">
           <div className="flex gap-2">
             <Button
               className="justify-start gap-3 h-8 capitalize w-[180px]"
@@ -71,62 +77,70 @@ export default async function DashboardPage({
               categories={[incomeCategories, outcomeCategories]}
             />
           </div>
-        </section>
+        </header>
 
-        <section className="flex gap-4 text-balance py-6">
-          <Card className="w-full md:w-fit">
-            <CardHeader>
-              <h3 className="text-md leading-none">Saldo</h3>
-              <CardDescription className="capitalize">
-                {format(searchParams.date, "MMMM", { locale: ptBR })}
-              </CardDescription>
-            </CardHeader>
+        <div className="flex flex-col md:grid md:grid-cols-[280px_1fr] gap-6 py-6">
+          <section className="flex flex-col gap-4 text-balance">
+            <Card className="w-full shadow-none">
+              <CardHeader>
+                <CardTitle className="text-md">Saldo</CardTitle>
+              </CardHeader>
 
-            <CardContent>
-              <h2 className="font-mono text-2xl font-bold">
-                {currency(balance?.balance ?? 0)}
-              </h2>
+              <CardContent>
+                <h2 className="font-mono text-2xl font-bold">
+                  {currency(balance?.balance ?? 0)}
+                </h2>
 
-              <div className="flex flex-col">
-                <p className="text-sm whitespace-nowrap">
-                  Receitas previtas: {currency(expected.incomes)}
-                </p>
-                <p className="text-sm whitespace-nowrap">
-                  Despesas previtas: {currency(expected.outcomes)}
-                </p>
-                <p className="text-sm whitespace-nowrap">
-                  Saldo previsto: {currency(expected.balance)}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
+                <Accordion type="single" collapsible>
+                  <AccordionItem value="values" className="border-0">
+                    <AccordionTrigger className="text-start text-xs text-muted-foreground">
+                      Valores previstos para o fim do período
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="flex flex-col">
+                        <p className="text-sm whitespace-nowrap">
+                          Receitas: {currency(expected.incomes)}
+                        </p>
+                        <p className="text-sm whitespace-nowrap">
+                          Despesas: {currency(expected.outcomes)}
+                        </p>
+                        <p className="text-sm whitespace-nowrap">
+                          Saldo previsto: {currency(expected.balance)}
+                        </p>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              </CardContent>
+            </Card>
 
-        <div className="space-y-4 pb-20 md:pb-6">
-          <FilterTransactions
-            categories={{
-              income: incomeCategories,
-              outcome: outcomeCategories,
-            }}
-          />
-
-          {transactions.length <= 0 ? (
-            <div className="flex flex-col items-center gap-2 w-full max-w-sm mx-auto py-10">
-              <p className="text-center text-sm text-muted-foreground">
-                Você ainda não tem nenhuma transação neste período, ou com os
-                filtros aplicados.
-              </p>
-              <CreateTransactionForm
-                categories={[incomeCategories, outcomeCategories]}
-              />
-            </div>
-          ) : null}
-
-          {transactions.length > 0 ? (
-            <ListTransactionsTable
-              transactions={transactions as Transaction[]}
+            <FilterTransactions
+              categories={{
+                income: incomeCategories,
+                outcome: outcomeCategories,
+              }}
             />
-          ) : null}
+          </section>
+
+          <div className="space-y-4 pb-20 md:pb-6">
+            {transactions.length <= 0 ? (
+              <div className="flex flex-col items-center gap-2 w-full max-w-sm mx-auto py-10">
+                <p className="text-center text-sm text-muted-foreground">
+                  Você ainda não tem nenhuma transação neste período, ou com os
+                  filtros aplicados.
+                </p>
+                <CreateTransactionForm
+                  categories={[incomeCategories, outcomeCategories]}
+                />
+              </div>
+            ) : null}
+
+            {transactions.length > 0 ? (
+              <ListTransactionsTable
+                transactions={transactions as Transaction[]}
+              />
+            ) : null}
+          </div>
         </div>
       </div>
 

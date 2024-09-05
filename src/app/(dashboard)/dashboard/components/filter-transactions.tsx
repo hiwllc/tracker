@@ -13,7 +13,7 @@ import { Category } from "~/database/schemas";
 import { useParams } from "~/hooks/use-params";
 
 const status = [
-  { title: "Todas", value: "all" },
+  { title: "Todas as transações", value: "all" },
   { title: "Pagas", value: "paid" },
   { title: "Não Pagas", value: "unpaid" },
 ] as const;
@@ -32,14 +32,14 @@ export function FilterTransactions({
   const current = status.find(({ value }) => value === qs.get("status"));
 
   return (
-    <div className="flex gap-3">
+    <div className="flex flex-col gap-3">
       <Select
         defaultValue={current?.value}
         onValueChange={(value) =>
           router.push(pathname + "?" + createQueryString("status", value))
         }
       >
-        <SelectTrigger className="w-[240px]">
+        <SelectTrigger>
           <SelectValue placeholder="Selecione o status..." />
         </SelectTrigger>
 
@@ -58,12 +58,12 @@ export function FilterTransactions({
           router.push(pathname + "?" + createQueryString("category", value))
         }
       >
-        <SelectTrigger className="w-[240px]">
+        <SelectTrigger>
           <SelectValue placeholder="Selecione uma categoria..." />
         </SelectTrigger>
 
         <SelectContent>
-          <SelectItem value="all">Todas</SelectItem>
+          <SelectItem value="all">Todas as categorias</SelectItem>
 
           <SelectGroup>
             <SelectLabel>Despesas</SelectLabel>

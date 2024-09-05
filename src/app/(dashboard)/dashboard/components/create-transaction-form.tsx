@@ -43,6 +43,16 @@ import { schema } from "../../schemas";
 import { useServerAction } from "zsa-react";
 import { createTransactionAction } from "../../actions/create-transaction-action";
 import { useDisclosure } from "~/hooks/use-disclosure";
+import { ReactNode } from "react";
+import { useMediaQuery } from "~/hooks/use-media-query";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "~/components/ui/drawer";
 
 type Schema = z.infer<typeof schema>;
 
@@ -80,24 +90,24 @@ export function CreateTransactionForm({ categories: tuple }: Props) {
   };
 
   return (
-    <Dialog open={isOpened} onOpenChange={toggle}>
-      <DialogTrigger asChild>
-        <Button className="h-8 gap-2">
-          <PlusIcon className="size-4" />
-          Adicionar
-        </Button>
-      </DialogTrigger>
+    <ModalForm toggle={toggle} isOpened={isOpened}>
+      <Form {...form}>
+        <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nome</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Nova Transação</DialogTitle>
-          <DialogDescription>
-            Cadastre sua nova transação informando os dados abaixo.
-          </DialogDescription>
-        </DialogHeader>
-
-        <Form {...form}>
-          <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
+          <div className="flex gap-4 [&>*]:flex-1">
             <FormField
               control={form.control}
               name="type"
@@ -119,20 +129,6 @@ export function CreateTransactionForm({ categories: tuple }: Props) {
                       </SelectContent>
                     </Select>
                   </FormControl>
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nome</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -164,97 +160,155 @@ export function CreateTransactionForm({ categories: tuple }: Props) {
                 </FormItem>
               )}
             />
+          </div>
 
-            <FormField
-              control={form.control}
-              name="value"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Valor</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      onChange={({ target }) => {
-                        form.setValue(
-                          "value",
-                          currency(Number(target.value.replace(/\D+/g, ""))),
-                        );
-                      }}
+          <FormField
+            control={form.control}
+            name="value"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Valor</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    onChange={({ target }) => {
+                      form.setValue(
+                        "value",
+                        currency(Number(target.value.replace(/\D+/g, ""))),
+                      );
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="dueDate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Vencimento</FormLabel>
+
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        className="w-full justify-start gap-2"
+                        size="sm"
+                        variant="outline"
+                        type="button"
+                      >
+                        <CalendarIcon className="size-4" />
+
+                        {field.value
+                          ? format(field.value, "dd/MM/yyyy")
+                          : "Selecione uma data de vencimento..."}
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      locale={ptBR}
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                  </PopoverContent>
+                </Popover>
 
-            <FormField
-              control={form.control}
-              name="dueDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Vencimento</FormLabel>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          className="w-full justify-start gap-2"
-                          size="sm"
-                          variant="outline"
-                          type="button"
-                        >
-                          <CalendarIcon className="size-4" />
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Descrição</FormLabel>
+                <FormControl>
+                  <Textarea {...field} className="resize-none" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-                          {field.value
-                            ? format(field.value, "dd/MM/yyyy")
-                            : "Selecione uma data de vencimento..."}
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        locale={ptBR}
-                      />
-                    </PopoverContent>
-                  </Popover>
+          <Button
+            size="sm"
+            className="w-full"
+            disabled={isPending}
+            aria-disabled={isPending}
+          >
+            {isPending ? (
+              <LoaderIcon className="size-4 animate-spin" />
+            ) : (
+              "Adicionar"
+            )}
+          </Button>
+        </form>
+      </Form>
+    </ModalForm>
+  );
+}
 
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+function ModalForm({
+  children,
+  isOpened,
+  toggle,
+}: {
+  children: ReactNode;
+  isOpened?: boolean;
+  toggle: VoidFunction;
+}) {
+  const isDesktop = useMediaQuery("(min-width: 764px)");
 
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Descrição</FormLabel>
-                  <FormControl>
-                    <Textarea {...field} className="resize-none" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+  if (isDesktop) {
+    return (
+      <Dialog open={isOpened} onOpenChange={toggle}>
+        <DialogTrigger asChild>
+          <Button className="h-8 gap-2">
+            <PlusIcon className="size-4" />
+            Adicionar
+          </Button>
+        </DialogTrigger>
 
-            <Button
-              size="sm"
-              className="w-full"
-              disabled={isPending}
-              aria-disabled={isPending}
-            >
-              {isPending ? (
-                <LoaderIcon className="size-4 animate-spin" />
-              ) : (
-                "Adicionar"
-              )}
-            </Button>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nova Transação</DialogTitle>
+            <DialogDescription>
+              Cadastre sua nova transação informando os dados abaixo.
+            </DialogDescription>
+          </DialogHeader>
+
+          {children}
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  return (
+    <Drawer>
+      <DrawerTrigger asChild>
+        <Button className="h-8 gap-2">
+          <PlusIcon className="size-4" />
+          Adicionar
+        </Button>
+      </DrawerTrigger>
+
+      <DrawerContent>
+        <DrawerHeader>
+          <DrawerTitle>Nova Transação</DrawerTitle>
+          <DrawerDescription>
+            Cadastre sua nova transação informando os dados abaixo.
+          </DrawerDescription>
+        </DrawerHeader>
+
+        <div className="p-6">{children}</div>
+      </DrawerContent>
+    </Drawer>
   );
 }

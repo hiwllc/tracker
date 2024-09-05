@@ -48,7 +48,7 @@ export const Balance = {
 
           return acc;
         },
-        Number(last.value) || 0,
+        Number(last?.value) || 0,
       );
 
       const [incomes] = await tx
@@ -77,8 +77,8 @@ export const Balance = {
 
       return {
         balance: result,
-        incomes: incomes.value,
-        outcomes: outcomes.value,
+        incomes: Number(incomes.value),
+        outcomes: Number(outcomes.value),
       };
     });
   },

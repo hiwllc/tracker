@@ -51,11 +51,12 @@ type Props = {
 };
 
 export function CreateTransactionForm({ categories: tuple }: Props) {
-  const { isOpened, toggle } = useDisclosure({ initialState: "closed" });
+  const { isOpened, toggle, close } = useDisclosure({ initialState: "closed" });
 
   const { execute, isPending } = useServerAction(createTransactionAction, {
     onFinish(result) {
-      toggle();
+      console.log(result);
+      close();
     },
   });
 

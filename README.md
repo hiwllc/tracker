@@ -6,24 +6,23 @@
 - [x] Fetch Transactions
 - [x] Fetch Categories
   - [x] Filter Categories by Income or Outcome
-- [ ] Fetch Filtered Transactions
+- [x] Fetch Filtered Transactions
   - [x] Month
-  - [ ] Not Paid
+  - [x] Not Paid Only
   - [x] Current User
-- Create transaction
-  - Calculate the current period balance
-  - On paid or unpaid (insert new register for balance)
+  - [x] Paid Only
+  - [x] Categories
+- [x] Create transaction
+  - [x] Calculate the current period balance
+  - [x] On paid or unpaid (insert new register for balance)
+- [ ] Update transaction
+- [ ] Delete transaction
+- [ ] Show balance prevision for the period
+- [ ] Show income/outcome prevision for the period
 
-## Todo
-- Transação
-  - Tipo (entrada/saída)
-  - Data de Vencimento
-  - Pago (sim/não)
-  - Valor
-  - Nome
-  - Descrição
 
 ## Ideias
+- On create account, set initial balance
 - On delete user, delete all data
 - Repete (?)
   - Mensal
@@ -34,3 +33,4 @@
   - Redirect after signup
 - Import CSV
 - Export CSV
+- Email semanal com as próximas transações da semana

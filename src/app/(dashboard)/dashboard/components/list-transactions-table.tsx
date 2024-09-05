@@ -1,7 +1,13 @@
 "use client";
 
 import { format } from "date-fns";
-import { LoaderIcon, ThumbsDownIcon, ThumbsUpIcon } from "lucide-react";
+import {
+  LoaderIcon,
+  MinusIcon,
+  PlusIcon,
+  ThumbsDownIcon,
+  ThumbsUpIcon,
+} from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent } from "~/components/ui/card";
 import {
@@ -12,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
-import { Category, Transaction } from "~/database/schemas";
+import { Transaction } from "~/database/schemas";
 import { currency } from "~/lib/formatters";
 import {
   createColumnHelper,
@@ -23,18 +29,16 @@ import {
 import { Badge } from "~/components/ui/badge";
 import { useServerAction } from "zsa-react";
 import { updateTransactionPaidStatus } from "../../actions/update-transaction-paid";
+import { useState } from "react";
 
-type TransactionWithCategory = Transaction & {
-  category: Pick<Category, "name">;
-};
-
-const column = createColumnHelper<TransactionWithCategory>();
+const column = createColumnHelper<Transaction>();
 
 type Props = {
-  transactions: Array<TransactionWithCategory>;
+  transactions: Array<Transaction>;
 };
 
 export function ListTransactionsTable({ transactions }: Props) {
+  const [updating, setUpdating] = useState<string | null>(null);
   const { execute, isPending } = useServerAction(updateTransactionPaidStatus);
 
   const columns = [
@@ -53,7 +57,20 @@ export function ListTransactionsTable({ transactions }: Props) {
     column.accessor("value", {
       header: "",
       id: "value",
-      cell: (props) => currency(props.getValue() ?? 0),
+      cell: (props) => {
+        const { type } = props.row.original;
+
+        return (
+          <span className="flex gap-1 items-center tabular-nums">
+            {type === "INCOME" ? (
+              <PlusIcon className="size-3" />
+            ) : (
+              <MinusIcon className="size-3" />
+            )}{" "}
+            {currency(props.getValue() ?? 0)}
+          </span>
+        );
+      },
     }),
     column.accessor("dueAt", {
       header: "",
@@ -73,11 +90,14 @@ export function ListTransactionsTable({ transactions }: Props) {
                 size="icon"
                 className="size-8 p-0"
                 variant="ghost"
-                onClick={() => execute({ id: trx.id, paid: false })}
-                disabled={isPending}
-                aria-disabled={isPending}
+                onClick={() => {
+                  setUpdating(trx.id);
+                  execute({ id: trx.id, paid: false });
+                }}
+                disabled={isPending && updating === trx.id}
+                aria-disabled={isPending && updating === trx.id}
               >
-                {isPending ? (
+                {isPending && updating === trx.id ? (
                   <>
                     <LoaderIcon className="size-4 animate-spin" />
                     <span className="sr-only">
@@ -100,17 +120,19 @@ export function ListTransactionsTable({ transactions }: Props) {
 
         if (!trx.paidAt) {
           return (
-            // @todo trocar isso aqui para form
             <div className="flex items-center justify-end">
               <Button
                 size="icon"
                 className="size-8 p-0"
                 variant="ghost"
-                onClick={() => execute({ id: trx.id, paid: true })}
-                disabled={isPending}
-                aria-disabled={isPending}
+                onClick={() => {
+                  setUpdating(trx.id);
+                  execute({ id: trx.id, paid: true });
+                }}
+                disabled={isPending && updating === trx.id}
+                aria-disabled={isPending && updating === trx.id}
               >
-                {isPending ? (
+                {isPending && updating === trx.id ? (
                   <>
                     <LoaderIcon className="size-4 animate-spin" />
                     <span className="sr-only">

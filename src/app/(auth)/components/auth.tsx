@@ -22,7 +22,7 @@ export function Auth() {
 
       <SignedIn>
         <Button size="sm" className="gap-2 group" asChild>
-          <Link href={`/dashboard?date=${current}`}>
+          <Link href={`/dashboard?date=${current}&status=unpaid&category=all`}>
             Dashboard
             <MoveRight className="size-4 group-hover:translate-x-1 transition-transform" />{" "}
           </Link>

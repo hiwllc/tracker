@@ -6,7 +6,7 @@ import {
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
-import { categories } from "./categories";
+import { categories, Category } from "./categories";
 import { relations } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 
@@ -54,6 +54,8 @@ export const transactionsRelations = relations(transactions, ({ one }) => ({
   }),
 }));
 
-export type Transaction = typeof transactions.$inferSelect;
+export type Transaction = typeof transactions.$inferSelect & {
+  category: Pick<Category, "name">;
+};
 
 export const createTransactionSchema = createInsertSchema(transactions);

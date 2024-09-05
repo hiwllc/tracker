@@ -21,20 +21,29 @@ const createTransactionPayload = createTransactionSchema.omit({
 });
 
 export const Transactions = {
-  // @todo filter for paid
-  // @todo filter for unpaid
-  // @todo filter for all
-  // @todo filter by category
-  all: async (date: Date = startOfMonth(new Date())) => {
+  all: async ({
+    date = startOfMonth(new Date()),
+    status = "unpaid",
+    category = "all",
+  }: {
+    date: Date;
+    status?: "all" | "paid" | "unpaid";
+    category?: string;
+  }) => {
     const { userId } = auth();
 
     const result = await db.query.transactions.findMany({
-      where: (trx, { and, eq, gte, lt, isNull }) => {
+      where: (trx, { and, eq, gte, lt, isNull, isNotNull }) => {
         return and(
           eq(trx.user, String(userId)),
-          // isNull(trx.paidAt),
           gte(trx.dueAt, date),
           lt(trx.dueAt, addMonths(date, 1)),
+          category === "all" ? undefined : eq(trx.category, category),
+          status === "all"
+            ? undefined
+            : status === "unpaid"
+              ? isNull(trx.paidAt)
+              : isNotNull(trx.paidAt),
         );
       },
       with: {
@@ -44,7 +53,7 @@ export const Transactions = {
           },
         },
       },
-      orderBy: (trx, { asc }) => asc(trx.dueAt),
+      orderBy: (trx, { asc }) => [asc(trx.dueAt), asc(trx.createdAt)],
     });
 
     return result.map(({ category, ...transacation }) => ({

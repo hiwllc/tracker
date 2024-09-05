@@ -9,16 +9,32 @@ import { Transactions } from "~/database/repositories/transactions";
 import { ListTransactionsTable } from "./components/list-transactions-table";
 import { Categories } from "~/database/repositories/categories";
 import { NavigationDates } from "./components/navigation-dates";
+import { Transaction } from "~/database/schemas";
+import { FilterTransactions } from "./components/filter-transactions";
+
+type Params = {
+  date: string;
+  status?: "paid" | "unpaid" | "all";
+  category?: string;
+};
 
 export default async function DashboardPage({
-  searchParams = { date: startOfMonth(new Date()).toISOString() },
+  searchParams = {
+    date: startOfMonth(new Date()).toISOString(),
+    status: "unpaid",
+    category: "all",
+  },
 }: {
-  searchParams: { date: string };
+  searchParams: Params;
 }) {
   const [balance, transactions, incomeCategories, outcomeCategories] =
     await Promise.all([
       Balance.get(),
-      Transactions.all(toDate(searchParams.date)),
+      Transactions.all({
+        date: toDate(searchParams.date),
+        status: searchParams.status,
+        category: searchParams.category,
+      }),
       Categories.income(),
       Categories.outcome(),
     ]);
@@ -28,7 +44,7 @@ export default async function DashboardPage({
       <section className="flex items-center justify-between">
         <div className="flex gap-2">
           <Button
-            className="justify-between gap-3 h-8 capitalize"
+            className="justify-start gap-3 h-8 capitalize w-[180px]"
             variant="outline"
             size="sm"
           >
@@ -55,21 +71,27 @@ export default async function DashboardPage({
         </h2>
       </section>
 
-      {transactions.length <= 0 ? (
-        <div className="flex flex-col items-center gap-2 w-full max-w-sm mx-auto py-10">
-          <p className="text-center text-sm text-muted-foreground">
-            Você ainda não tem nenhuma transação neste período, ou com os
-            filtros aplicados.
-          </p>
-          <CreateTransactionForm
-            categories={[incomeCategories, outcomeCategories]}
-          />
-        </div>
-      ) : null}
+      <div className="space-y-4">
+        <FilterTransactions
+          categories={{ income: incomeCategories, outcome: outcomeCategories }}
+        />
 
-      {transactions.length > 0 ? (
-        <ListTransactionsTable transactions={transactions} />
-      ) : null}
+        {transactions.length <= 0 ? (
+          <div className="flex flex-col items-center gap-2 w-full max-w-sm mx-auto py-10">
+            <p className="text-center text-sm text-muted-foreground">
+              Você ainda não tem nenhuma transação neste período, ou com os
+              filtros aplicados.
+            </p>
+            <CreateTransactionForm
+              categories={[incomeCategories, outcomeCategories]}
+            />
+          </div>
+        ) : null}
+
+        {transactions.length > 0 ? (
+          <ListTransactionsTable transactions={transactions as Transaction[]} />
+        ) : null}
+      </div>
     </div>
   );
 }

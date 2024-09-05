@@ -3,10 +3,14 @@ import { db } from "..";
 
 export const Categories = {
   outcome: async () => {
-    // @todo filter categories by user or system and outcomes
+    const { userId } = auth();
+
     return db.query.categories.findMany({
-      where: (category, { eq }) => {
-        return eq(category.type, "OUTCOME");
+      where: (category, { eq, and, or }) => {
+        return and(
+          eq(category.type, "OUTCOME"),
+          or(eq(category.source, "SYSTEM"), eq(category.user, String(userId))),
+        );
       },
       columns: {
         id: true,
@@ -16,10 +20,14 @@ export const Categories = {
   },
 
   income: async () => {
-    // @todo filter categories by user or system and income
+    const { userId } = auth();
+
     return db.query.categories.findMany({
-      where: (category, { eq }) => {
-        return eq(category.type, "INCOME");
+      where: (category, { eq, and, or }) => {
+        return and(
+          eq(category.type, "INCOME"),
+          or(eq(category.source, "SYSTEM"), eq(category.user, String(userId))),
+        );
       },
       columns: {
         id: true,

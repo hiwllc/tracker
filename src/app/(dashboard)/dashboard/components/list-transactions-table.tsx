@@ -100,7 +100,7 @@ export function ListTransactionsTable({ transactions }: Props) {
       cell: (props) => format(props.getValue() as Date, "dd/MM/yyyy"),
     }),
     column.accessor("paidAt", {
-      header: "Ações",
+      header: "",
       id: "paid",
       cell: (props) => {
         const trx = props.row.original;

@@ -1,6 +1,7 @@
 import { UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { ReactNode } from "react";
+import { ToggleTheme } from "~/components/theme/toggle";
 
 export default function DashboardLayout({
   children,
@@ -14,7 +15,16 @@ export default function DashboardLayout({
           <h1 className="font-mono text-sm font-medium">
             <Link href="/dashboard">tracker</Link>
           </h1>
-          <UserButton showName />
+
+          <div className="flex gap-2">
+            <UserButton
+              appearance={{
+                elements: { userButtonOuterIdentifier: "text-foreground" },
+              }}
+              showName
+            />
+            <ToggleTheme />
+          </div>
         </div>
       </header>
 

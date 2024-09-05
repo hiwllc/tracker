@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ptBR } from "@clerk/localizations";
 import "./globals.css";
+import { ThemeProvider } from "~/components/theme/provider";
 
 export const metadata: Metadata = {
   title: "tracker",
@@ -16,7 +17,15 @@ export default function RootLayout({
   return (
     <ClerkProvider localization={ptBR}>
       <html lang="pt-BR" suppressHydrationWarning>
-        <body className="w-full min-h-dvh">{children}</body>
+        <body className="w-full min-h-dvh">
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            disableTransitionOnChange
+          >
+            {children}
+          </ThemeProvider>
+        </body>
       </html>
     </ClerkProvider>
   );

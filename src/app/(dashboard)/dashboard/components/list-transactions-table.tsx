@@ -30,6 +30,7 @@ import { Badge } from "~/components/ui/badge";
 import { useServerAction } from "zsa-react";
 import { updateTransactionPaidStatus } from "../../actions/update-transaction-paid";
 import { useState } from "react";
+import { useMediaQuery } from "~/hooks/use-media-query";
 
 const column = createColumnHelper<Transaction>();
 
@@ -40,13 +41,30 @@ type Props = {
 export function ListTransactionsTable({ transactions }: Props) {
   const [updating, setUpdating] = useState<string | null>(null);
   const { execute, isPending } = useServerAction(updateTransactionPaidStatus);
+  const isDesktop = useMediaQuery("(min-width: 768px)");
 
   const columns = [
     column.accessor("name", {
       header: "Transação",
+      cell: (props) => {
+        const { name, category, dueAt } = props.row.original;
+
+        return (
+          <div className="flex flex-col">
+            <p className="text-sm font-medium">{name}</p>
+
+            <div className="md:hidden flex flex-col">
+              <small className="font-medium text-muted-foreground">
+                {category.name}
+              </small>
+              <small>{format(dueAt, "dd/MM/yyyy")}</small>
+            </div>
+          </div>
+        );
+      },
     }),
     column.accessor("category", {
-      header: "",
+      header: "Categoria",
       id: "category",
       cell: (props) => {
         const category = props.getValue();
@@ -55,7 +73,7 @@ export function ListTransactionsTable({ transactions }: Props) {
       },
     }),
     column.accessor("value", {
-      header: "",
+      header: "Valor (R$)",
       id: "value",
       cell: (props) => {
         const { type } = props.row.original;
@@ -73,7 +91,7 @@ export function ListTransactionsTable({ transactions }: Props) {
       },
     }),
     column.accessor("dueAt", {
-      header: "",
+      header: "Vencimento",
       id: "due",
       cell: (props) => format(props.getValue() as Date, "dd/MM/yyyy"),
     }),
@@ -158,6 +176,14 @@ export function ListTransactionsTable({ transactions }: Props) {
   const table = useReactTable({
     columns,
     data: transactions,
+    state: {
+      columnVisibility: {
+        category: isDesktop,
+        value: true,
+        due: isDesktop,
+        paid: true,
+      },
+    },
     getCoreRowModel: getCoreRowModel(),
   });
 

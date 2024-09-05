@@ -17,20 +17,20 @@
   - [x] On paid or unpaid (insert new register for balance)
 - [ ] Update transaction
 - [ ] Delete transaction
-- [ ] Show balance prevision for the period
-- [ ] Show income/outcome prevision for the period
-
+- [x] Show balance prevision for the period
+- [x] Show income/outcome prevision for the period
+- [x] Responsive design
 
 ## Ideias
 - On create account, set initial balance
+- Onboarding
+  - Setar Saldo Inicial
+  - Redirect after signup
+- Email semanal com as próximas transações da semana
 - On delete user, delete all data
 - Repete (?)
   - Mensal
   - Anual
   - Parcelado
-- Onboarding
-  - Setar Saldo Inicial
-  - Redirect after signup
 - Import CSV
 - Export CSV
-- Email semanal com as próximas transações da semana

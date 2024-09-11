@@ -19,7 +19,7 @@ export const createTransactionAction = procedure
       value: number(input.value),
     });
 
-    revalidatePath(`/dashboard`, "page");
+    revalidatePath("/dashboard", "page");
 
     return { user };
   });

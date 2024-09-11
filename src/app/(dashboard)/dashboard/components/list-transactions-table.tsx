@@ -5,6 +5,8 @@ import {
   LoaderIcon,
   MinusIcon,
   PlusIcon,
+  Repeat2Icon,
+  RepeatIcon,
   ThumbsDownIcon,
   ThumbsUpIcon,
   TrashIcon,
@@ -19,7 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
-import { Transaction } from "~/database/schemas";
+import type { Transaction } from "~/database/schemas";
 import { currency } from "~/lib/formatters";
 import {
   createColumnHelper,
@@ -33,6 +35,15 @@ import { updateTransactionPaidStatus } from "../../actions/update-transaction-pa
 import { useState } from "react";
 import { useMediaQuery } from "~/hooks/use-media-query";
 import { deleteTranasctionAction } from "../../actions/delete-transaction-action";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "~/components/ui/dialog";
+import { useDisclosure } from "~/hooks/use-disclosure";
 
 const column = createColumnHelper<Transaction>();
 
@@ -42,8 +53,17 @@ type Props = {
 
 export function ListTransactionsTable({ transactions }: Props) {
   const [updating, setUpdating] = useState<string | null>(null);
+  const [trx, setTrx] = useState<Transaction | null>(null);
+  const { isOpened, toggle, close } = useDisclosure({ initialState: "closed" });
+
   const update = useServerAction(updateTransactionPaidStatus);
-  const remove = useServerAction(deleteTranasctionAction);
+
+  const remove = useServerAction(deleteTranasctionAction, {
+    onSuccess: () => {
+      setUpdating(null);
+      close();
+    },
+  });
 
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
@@ -51,11 +71,16 @@ export function ListTransactionsTable({ transactions }: Props) {
     column.accessor("name", {
       header: "Transação",
       cell: (props) => {
-        const { name, category, dueAt } = props.row.original;
+        const { name, category, dueAt, interval } = props.row.original;
 
         return (
           <div className="flex flex-col">
-            <p className="text-sm font-medium">{name}</p>
+            <div className="flex gap-2 items-center">
+              {interval !== "UNIQUE" ? (
+                <Repeat2Icon className="size-4 text-muted-foreground" />
+              ) : null}
+              <p className="text-sm font-medium">{name}</p>
+            </div>
 
             <div className="md:hidden flex flex-col">
               <small className="font-medium text-muted-foreground">
@@ -114,7 +139,12 @@ export function ListTransactionsTable({ transactions }: Props) {
                 variant="ghost"
                 onClick={() => {
                   setUpdating(trx.id);
-                  update.execute({ id: trx.id, paid: false });
+
+                  update.execute({
+                    ...trx,
+                    category: trx.category.id,
+                    paidAt: null,
+                  });
                 }}
                 disabled={update.isPending && updating === trx.id}
                 aria-disabled={update.isPending && updating === trx.id}
@@ -145,7 +175,12 @@ export function ListTransactionsTable({ transactions }: Props) {
                 variant="ghost"
                 onClick={() => {
                   setUpdating(trx.id);
-                  update.execute({ id: trx.id, paid: true });
+
+                  update.execute({
+                    ...trx,
+                    category: trx.category.id,
+                    paidAt: new Date(),
+                  });
                 }}
                 disabled={update.isPending && updating === trx.id}
                 aria-disabled={update.isPending && updating === trx.id}
@@ -173,25 +208,12 @@ export function ListTransactionsTable({ transactions }: Props) {
               className="size-8 p-0"
               variant="ghost"
               onClick={() => {
-                setUpdating(trx.id);
-                remove.execute({ id: trx.id });
+                setTrx(trx);
+                toggle();
               }}
-              disabled={remove.isPending && updating === trx.id}
-              aria-disabled={remove.isPending && updating === trx.id}
             >
-              {remove.isPending && updating === trx.id ? (
-                <>
-                  <LoaderIcon className="size-4 animate-spin" />
-                  <span className="sr-only">Removendo esta transação.</span>
-                </>
-              ) : (
-                <>
-                  <TrashIcon className="size-4" />
-                  <span className="sr-only">
-                    Remover a transação {trx.name}.
-                  </span>
-                </>
-              )}
+              <TrashIcon className="size-4" />
+              <span className="sr-only">Remover a transação {trx.name}.</span>
             </Button>
           </div>
         );
@@ -214,37 +236,89 @@ export function ListTransactionsTable({ transactions }: Props) {
   });
 
   return (
-    <Card>
-      <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((header) => (
-              <TableRow key={header.id}>
-                {header.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {flexRender(
-                      header.column.columnDef.header,
-                      header.getContext(),
-                    )}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
+    <>
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((header) => (
+                <TableRow key={header.id}>
+                  {header.headers.map((header) => (
+                    <TableHead key={header.id}>
+                      {flexRender(
+                        header.column.columnDef.header,
+                        header.getContext(),
+                      )}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              ))}
+            </TableHeader>
 
-          <TableBody>
-            {table.getCoreRowModel().rows.map((row) => (
-              <TableRow key={row.id}>
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+            <TableBody>
+              {table.getCoreRowModel().rows.map((row) => (
+                <TableRow key={row.id}>
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {trx ? (
+        <Dialog open={isOpened} onOpenChange={toggle}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Excluir transação</DialogTitle>
+            </DialogHeader>
+
+            <p className="text-foreground text-sm">
+              Você está excluindo uma transação, essa ação não pode ser
+              desfeita,{" "}
+              {trx.interval !== "UNIQUE"
+                ? "esta é uma transaçao que se repete, ao excluir esta transação as transações futuras e passadas também serão excluidas,"
+                : ""}{" "}
+              tem certeza que deseja excluir?
+            </p>
+
+            <DialogFooter>
+              <DialogClose>
+                <Button type="button" size="sm">
+                  Não quero excluir
+                </Button>
+              </DialogClose>
+              <Button
+                size="sm"
+                variant="destructive"
+                className="w-[142px]"
+                onClick={() => {
+                  setUpdating(trx.id);
+                  remove.execute({ id: trx.id, reference: trx.reference });
+                }}
+              >
+                {remove.isPending ? (
+                  <>
+                    <LoaderIcon className="animate-spin size-4" />
+                    <span className="sr-only">
+                      removendo a transação {trx.name}
+                    </span>
+                  </>
+                ) : (
+                  "Sim, quero excluir"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      ) : null}
+    </>
   );
 }

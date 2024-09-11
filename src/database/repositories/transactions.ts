@@ -1,6 +1,11 @@
 import { auth } from "@clerk/nextjs/server";
 import { db } from "..";
-import { addMonths, startOfMonth } from "date-fns";
+import {
+  addMonths,
+  differenceInMonths,
+  endOfMonth,
+  startOfMonth,
+} from "date-fns";
 import {
   balance,
   Category,
@@ -8,19 +13,21 @@ import {
   transactions,
 } from "../schemas";
 import { z } from "zod";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, or } from "drizzle-orm";
+import crypto from "node:crypto";
 
 const createTransactionPayload = createTransactionSchema.omit({
   id: true,
   user: true,
   paidAt: true,
   installments: true,
+  nextDueAt: true,
   createdAt: true,
   deletedAt: true,
   updatedAt: true,
 });
 
-const updateTransactionPayload = createTransactionSchema
+export const updateTransactionPayload = createTransactionSchema
   .merge(
     z.object({
       id: z.string().uuid(),
@@ -28,6 +35,7 @@ const updateTransactionPayload = createTransactionSchema
       value: z.number().optional(),
       category: z.string().uuid().optional(),
       dueAt: z.date().optional(),
+      paidAt: z.date().nullable(),
     }),
   )
   .omit({
@@ -63,6 +71,7 @@ export const Transactions = {
       with: {
         category: {
           columns: {
+            id: true,
             name: true,
           },
         },
@@ -70,34 +79,120 @@ export const Transactions = {
       orderBy: (trx, { asc }) => [asc(trx.dueAt), asc(trx.createdAt)],
     });
 
-    return result.map(({ category, ...transacation }) => ({
-      category: category as Pick<Category, "name">,
+    // references não pode ter status
+    const references = result
+      .map(({ reference }) => reference)
+      .filter(Boolean) as string[];
+
+    const time = await db.query.transactions.findMany({
+      where: (t, { and, eq, gte, lt }) =>
+        and(
+          eq(t.user, String(userId)),
+          gte(t.dueAt, date),
+          lt(t.dueAt, addMonths(date, 1)),
+        ),
+    });
+
+    const timeRef = time
+      .map(({ reference }) => reference)
+      .filter(Boolean) as string[];
+
+    const recurrency = await db.query.transactions.findMany({
+      where: (t, { and, eq, lte, isNull, isNotNull, notInArray }) => {
+        return and(
+          eq(t.user, String(userId)),
+          lte(t.nextDueAt, endOfMonth(date)),
+          isNull(t.reference),
+
+          notInArray(t.id, [...references, ...timeRef]),
+
+          category === "all" ? undefined : eq(t.category, category),
+          status === "all"
+            ? undefined
+            : status === "unpaid"
+              ? isNull(t.paidAt)
+              : isNotNull(t.paidAt),
+        );
+      },
+      with: {
+        category: {
+          columns: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: (t, { asc }) => [asc(t.dueAt), asc(t.createdAt)],
+    });
+
+    // @todo seperate this in another funcion
+    const virtualized = recurrency.map((t) => {
+      const dueAt = addMonths(
+        t.dueAt,
+        differenceInMonths(date, startOfMonth(t.dueAt)),
+      );
+      const nextDueAt = addMonths(t.nextDueAt as Date, 1);
+
+      return {
+        ...t,
+        id: crypto.randomUUID(),
+        reference: t.id,
+        dueAt,
+        nextDueAt,
+        paidAt: null,
+        virtual: true,
+      };
+    });
+
+    return [...result, ...virtualized].map(({ category, ...transacation }) => ({
+      category: category as Pick<Category, "name" | "id">,
       ...transacation,
     }));
   },
 
+  /** @todo calculate the next due date from transaction */
+  // calculate next due date in monthly
+  // calcular next due date in weekly
+  // calcular next due date in yearly
   create: async (data: z.input<typeof createTransactionPayload>) => {
     const { userId } = auth();
 
+    /** @todo calcular próxima data para weekly and yearly */
+    const nextDueAt =
+      data.interval === "MONTHLY" ? addMonths(data.dueAt, 1) : null;
+
     return db.insert(transactions).values({
       user: String(userId),
+      nextDueAt,
       ...data,
     });
   },
 
-  remove: async (id: string) => {
+  remove: async (id: string, reference: string | null) => {
     const { userId } = auth();
 
-    return db
-      .delete(transactions)
-      .where(
-        and(eq(transactions.id, id), eq(transactions.user, String(userId))),
-      );
+    return db.transaction(async (tx) => {
+      await tx
+        .delete(transactions)
+        .where(
+          and(
+            eq(transactions.user, String(userId)),
+            or(
+              eq(transactions.id, id),
+              eq(transactions.reference, id),
+              reference ? eq(transactions.id, reference) : undefined,
+              reference ? eq(transactions.reference, reference) : undefined,
+            ),
+          ),
+        );
+    });
   },
 
-  updatePaidStatus: async ({ paid, id }: { paid: boolean; id: string }) => {
+  updatePaidStatus: async ({
+    id,
+    ...t
+  }: z.infer<typeof updateTransactionPayload>) => {
     const { userId } = auth();
-    const date = new Date();
 
     return db.transaction(async (tx) => {
       const [{ balance: current }] = await tx
@@ -108,21 +203,25 @@ export const Transactions = {
         .limit(1);
 
       const [trx] = await tx
-        .update(transactions)
-        .set({
-          paidAt: paid ? date : null,
-          updatedAt: date,
+        .insert(transactions)
+        .values({
+          id,
+          user: String(userId),
+          name: t.name as string,
+          value: Number(t.value),
+          category: t.category as string,
+          dueAt: t.dueAt as Date,
+          ...t,
         })
-        .where(
-          and(eq(transactions.user, String(userId)), eq(transactions.id, id)),
-        )
-        .returning({
-          type: transactions.type,
-          value: transactions.value,
-        });
+        .onConflictDoUpdate({
+          target: transactions.id,
+          set: { paidAt: t.paidAt, updatedAt: t.paidAt },
+        })
+        .returning();
 
       const isIncome =
-        (trx.type === "INCOME" && paid) || (trx.type === "OUTCOME" && !paid);
+        (trx.type === "INCOME" && t.paidAt) ||
+        (trx.type === "OUTCOME" && !t.paidAt);
 
       await tx.insert(balance).values({
         transaction: id,

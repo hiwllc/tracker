@@ -8,4 +8,5 @@ export const schema = z.object({
   category: z.string(),
   dueDate: z.date(),
   interval: z.enum(["DAILY", "WEEKLY", "MONTHLY", "YEARLY", "UNIQUE"]),
+  repeatable: z.boolean().optional(),
 });

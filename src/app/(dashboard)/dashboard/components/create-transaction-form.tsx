@@ -1,6 +1,6 @@
 "use client";
 
-import { z } from "zod";
+import type { z } from "zod";
 import { useForm } from "react-hook-form";
 import {
   Form,
@@ -38,12 +38,12 @@ import {
 } from "~/components/ui/popover";
 import { Calendar } from "~/components/ui/calendar";
 import { ptBR } from "date-fns/locale";
-import { Category } from "~/database/schemas";
-import { schema } from "../../schemas";
+import type { Category } from "~/database/schemas";
+import type { schema } from "../../schemas";
 import { useServerAction } from "zsa-react";
 import { createTransactionAction } from "../../actions/create-transaction-action";
 import { useDisclosure } from "~/hooks/use-disclosure";
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 import { useMediaQuery } from "~/hooks/use-media-query";
 import {
   Drawer,
@@ -53,6 +53,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "~/components/ui/drawer";
+import { Switch } from "~/components/ui/switch";
 
 type Schema = z.infer<typeof schema>;
 
@@ -63,13 +64,6 @@ type Props = {
 export function CreateTransactionForm({ categories: tuple }: Props) {
   const { isOpened, toggle, close } = useDisclosure({ initialState: "closed" });
 
-  const { execute, isPending } = useServerAction(createTransactionAction, {
-    onFinish(result) {
-      console.log(result);
-      close();
-    },
-  });
-
   const form = useForm<Schema>({
     defaultValues: {
       type: "OUTCOME",
@@ -79,6 +73,14 @@ export function CreateTransactionForm({ categories: tuple }: Props) {
       description: "",
       dueDate: new Date(),
       interval: "UNIQUE",
+      repeatable: false,
+    },
+  });
+
+  const { execute, isPending } = useServerAction(createTransactionAction, {
+    onFinish(result) {
+      close();
+      form.reset();
     },
   });
 
@@ -88,6 +90,8 @@ export function CreateTransactionForm({ categories: tuple }: Props) {
   const onSubmit = async (data: Schema) => {
     await execute(data);
   };
+
+  const repeatable = form.watch("repeatable");
 
   return (
     <ModalForm toggle={toggle} isOpened={isOpened}>
@@ -236,6 +240,56 @@ export function CreateTransactionForm({ categories: tuple }: Props) {
               </FormItem>
             )}
           />
+
+          <FormField
+            control={form.control}
+            name="repeatable"
+            render={({ field }) => (
+              <FormItem className="space-y-0 items-center flex gap-2">
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+                <FormLabel>Essa transação se repete</FormLabel>
+              </FormItem>
+            )}
+          />
+
+          {repeatable ? (
+            <FormField
+              control={form.control}
+              name="interval"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <Select
+                      defaultValue={field.value}
+                      onValueChange={field.onChange}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione um intervalo" />
+                      </SelectTrigger>
+
+                      <SelectContent>
+                        <SelectItem value="WEEKLY" disabled>
+                          Semanal
+                        </SelectItem>
+                        <SelectItem value="MONTHLY">Mensal</SelectItem>
+                        <SelectItem value="YEARLY" disabled>
+                          Anual
+                        </SelectItem>
+                        <SelectItem value="INSTALLMENTS" disabled>
+                          Parcelada
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          ) : null}
 
           <Button
             size="sm"

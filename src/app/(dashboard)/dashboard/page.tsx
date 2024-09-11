@@ -41,10 +41,9 @@ export default async function DashboardPage({
 }: {
   searchParams: Params;
 }) {
-  const [balance, expected, transactions, incomeCategories, outcomeCategories] =
+  const [balance, transactions, incomeCategories, outcomeCategories] =
     await Promise.all([
       Balance.get(),
-      Balance.expected(toDate(searchParams.date)),
       Transactions.all({
         date: toDate(searchParams.date),
         status: searchParams.status,
@@ -53,6 +52,29 @@ export default async function DashboardPage({
       Categories.income(),
       Categories.outcome(),
     ]);
+
+  const { income, outcome, saldo } = transactions.reduce(
+    (acc, trx) => {
+      if (trx.type === "OUTCOME") {
+        acc.outcome += trx.value;
+
+        if (!trx.paidAt) {
+          acc.saldo -= trx.value;
+        }
+      }
+
+      if (trx.type === "INCOME") {
+        acc.income += trx.value;
+
+        if (!trx.paidAt) {
+          acc.saldo += trx.value;
+        }
+      }
+
+      return acc;
+    },
+    { income: 0, outcome: 0, saldo: balance?.balance ?? 0 },
+  );
 
   return (
     <>
@@ -102,13 +124,14 @@ export default async function DashboardPage({
                     <AccordionContent>
                       <div className="flex flex-col">
                         <p className="text-sm whitespace-nowrap">
-                          Receitas: {currency(expected.incomes)}
+                          Receitas: {currency(income)}
                         </p>
                         <p className="text-sm whitespace-nowrap">
-                          Despesas: {currency(expected.outcomes)}
+                          Despesas: {currency(outcome)}
                         </p>
+
                         <p className="text-sm whitespace-nowrap">
-                          Saldo previsto: {currency(expected.balance)}
+                          Saldo previsto: {currency(saldo)}
                         </p>
                       </div>
                     </AccordionContent>

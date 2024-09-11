@@ -3,6 +3,11 @@
 
 
 ## Todo
+- Repetable transactions ([x] monthly, [ ] yearly, [ ] installments)
+- Add tooltip for icons
+- Update transactions
+- Add date interval selection
+- Show transactions descriptions
 - Weekly email for the next transactions
-- Repetable transactions (monthly, yearly, installments)
 - Import/Export CSV
+- Reset user account

@@ -32,6 +32,7 @@ export const transactions = pgTable("transactions", {
   type: transactionsType("type").default("OUTCOME").notNull(),
   interval: transactionsInterval("interval").default("UNIQUE").notNull(),
   installments: integer("installments"),
+  reference: uuid("reference"),
   value: integer("value").notNull(),
   category: uuid("category_id")
     .notNull()
@@ -42,6 +43,10 @@ export const transactions = pgTable("transactions", {
     .defaultNow()
     .notNull(),
   dueAt: timestamp("due_at", { mode: "date", withTimezone: true }).notNull(),
+  nextDueAt: timestamp("next_due_at", {
+    mode: "date",
+    withTimezone: true,
+  }),
   paidAt: timestamp("paid_at", { mode: "date", withTimezone: true }),
   updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true }),
   deletedAt: timestamp("deleted_at", { mode: "date", withTimezone: true }),
@@ -55,7 +60,7 @@ export const transactionsRelations = relations(transactions, ({ one }) => ({
 }));
 
 export type Transaction = typeof transactions.$inferSelect & {
-  category: Pick<Category, "name">;
+  category: Pick<Category, "name" | "id">;
 };
 
 export const createTransactionSchema = createInsertSchema(transactions);

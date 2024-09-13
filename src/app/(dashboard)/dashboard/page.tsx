@@ -3,13 +3,16 @@ import { ptBR } from "date-fns/locale";
 import { CalendarIcon } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { CreateTransactionForm } from "./components/create-transaction-form";
-import { currency } from "~/lib/formatters";
+import { currency, number } from "~/lib/formatters";
 import { Balance } from "~/database/repositories/balance";
-import { Transactions } from "~/database/repositories/transactions";
+import {
+  type PaidStatus,
+  Transactions,
+} from "~/database/repositories/transactions";
 import { ListTransactionsTable } from "./components/list-transactions-table";
 import { Categories } from "~/database/repositories/categories";
 import { NavigationDates } from "./components/navigation-dates";
-import { Transaction } from "~/database/schemas";
+import type { Transaction } from "~/database/schemas";
 import { FilterTransactions } from "./components/filter-transactions";
 import {
   Card,
@@ -25,12 +28,40 @@ import {
   AccordionTrigger,
 } from "~/components/ui/accordion";
 import { CreateInitialBalance } from "./components/create-initial-balance";
+import { DEFAULT_DATE } from "../constants";
+import { ToggleTheme } from "~/components/theme/toggle";
 
 type Params = {
-  date: string;
-  status?: "paid" | "unpaid" | "all";
+  date?: string;
+  status?: PaidStatus;
   category?: string;
 };
+
+/**
+ * this functions returns the initial data for the current
+ * signedin user: categories, balance and transactions
+ */
+async function getUserDataForDashboard({
+  date,
+  category,
+  status,
+}: {
+  date: string;
+  status?: PaidStatus;
+  category?: string;
+}) {
+  const [balance, categories, transactions] = await Promise.all([
+    Balance.get(),
+    Categories.all(),
+    Transactions.all({ date: toDate(date), status }),
+  ]);
+
+  return {
+    balance: balance ? currency(balance?.balance) : null,
+    categories,
+    transactions,
+  };
+}
 
 export default async function DashboardPage({
   searchParams = {
@@ -41,97 +72,94 @@ export default async function DashboardPage({
 }: {
   searchParams: Params;
 }) {
-  const [balance, transactions, incomeCategories, outcomeCategories] =
-    await Promise.all([
-      Balance.get(),
-      Transactions.all({
-        date: toDate(searchParams.date),
-        status: searchParams.status,
-        category: searchParams.category,
-      }),
-      Categories.income(),
-      Categories.outcome(),
-    ]);
+  const { balance, categories, transactions } = await getUserDataForDashboard({
+    date: searchParams.date ?? DEFAULT_DATE,
+    status: searchParams.status,
+    category: searchParams.category,
+  });
 
-  const { income, outcome, saldo } = transactions.reduce(
-    (acc, trx) => {
-      if (trx.type === "OUTCOME") {
-        acc.outcome += trx.value;
+  const expected = transactions.reduce(
+    (acc, t) => {
+      if (t.type === "OUTCOME") {
+        acc.outcome += t.value;
 
-        if (!trx.paidAt) {
-          acc.saldo -= trx.value;
+        if (!t.paidAt) {
+          acc.balance -= t.value;
         }
       }
 
-      if (trx.type === "INCOME") {
-        acc.income += trx.value;
+      if (t.type === "INCOME") {
+        acc.income += t.value;
 
-        if (!trx.paidAt) {
-          acc.saldo += trx.value;
+        if (!t.paidAt) {
+          acc.balance += t.value;
         }
       }
 
       return acc;
     },
-    { income: 0, outcome: 0, saldo: balance?.balance ?? 0 },
+    { income: 0, outcome: 0, balance: balance ? number(balance) : 0 },
   );
 
   return (
     <>
       <CreateInitialBalance defaultOpen={!balance} />
-
       <div className="container">
-        <header className="hidden md:flex items-center justify-between">
-          <div className="flex gap-2">
-            <Button
-              className="justify-start gap-3 h-8 capitalize w-[180px]"
-              variant="outline"
-              size="sm"
-            >
-              <CalendarIcon className="size-4" />{" "}
-              {format(searchParams.date, "MMMM, yyyy", {
-                locale: ptBR,
-              })}
-            </Button>
+        <div className="flex flex-col lg:grid lg:grid-cols-[280px_1fr] gap-6 py-6 min-h-[calc(100dvh-160px)]">
+          <aside className="flex flex-col gap-4 text-balance lg:sticky lg:top-[104px] lg:h-[calc(100dvh-120px)]">
+            <div className="gap-2 hidden lg:flex">
+              <CreateTransactionForm
+                categories={{
+                  income: categories.filter(({ type }) => type === "INCOME"),
+                  outcome: categories.filter(({ type }) => type === "OUTCOME"),
+                }}
+              />
+            </div>
 
-            <NavigationDates />
-          </div>
+            <div className="hidden lg:flex gap-2 w-full">
+              <Button
+                className="justify-start gap-3 h-8 capitalize w-[180px] flex-1"
+                variant="outline"
+                size="sm"
+              >
+                <CalendarIcon className="size-4" />{" "}
+                {format(searchParams.date ?? DEFAULT_DATE, "MMMM, yyyy", {
+                  locale: ptBR,
+                })}
+              </Button>
 
-          <div className="flex gap-2">
-            <CreateTransactionForm
-              categories={[incomeCategories, outcomeCategories]}
-            />
-          </div>
-        </header>
+              <NavigationDates />
+            </div>
 
-        <div className="flex flex-col md:grid md:grid-cols-[280px_1fr] gap-6 py-6">
-          <section className="flex flex-col gap-4 text-balance">
             <Card className="w-full shadow-none">
               <CardHeader>
                 <CardTitle className="text-md">Saldo</CardTitle>
+                <CardDescription className="capitalize">
+                  {format(searchParams.date ?? DEFAULT_DATE, "MMMM, yyyy", {
+                    locale: ptBR,
+                  })}
+                </CardDescription>
               </CardHeader>
 
               <CardContent>
-                <h2 className="font-mono text-2xl font-bold">
-                  {currency(balance?.balance ?? 0)}
-                </h2>
+                <h2 className="font-mono text-2xl font-bold">{balance}</h2>
 
                 <Accordion type="single" collapsible>
                   <AccordionItem value="values" className="border-0">
                     <AccordionTrigger className="text-start text-xs text-muted-foreground">
                       Valores previstos para o fim do período
                     </AccordionTrigger>
+
                     <AccordionContent>
                       <div className="flex flex-col">
                         <p className="text-sm whitespace-nowrap">
-                          Receitas: {currency(income)}
+                          Receitas: {currency(expected.income)}
                         </p>
                         <p className="text-sm whitespace-nowrap">
-                          Despesas: {currency(outcome)}
+                          Despesas: {currency(expected.outcome)}
                         </p>
-
                         <p className="text-sm whitespace-nowrap">
-                          Saldo previsto: {currency(saldo)}
+                          Saldo previsto: {currency(expected.balance)}
                         </p>
                       </div>
                     </AccordionContent>
@@ -142,13 +170,17 @@ export default async function DashboardPage({
 
             <FilterTransactions
               categories={{
-                income: incomeCategories,
-                outcome: outcomeCategories,
+                income: categories.filter(({ type }) => type === "INCOME"),
+                outcome: categories.filter(({ type }) => type === "OUTCOME"),
               }}
             />
-          </section>
 
-          <div className="space-y-4 pb-20 md:pb-6">
+            <div className="mt-auto hidden lg:block">
+              <ToggleTheme align="start" />
+            </div>
+          </aside>
+
+          <div className="space-y-4 pb-20 lg:pb-6">
             {transactions.length <= 0 ? (
               <div className="flex flex-col items-center gap-2 w-full max-w-sm mx-auto py-10">
                 <p className="text-center text-sm text-muted-foreground">
@@ -156,7 +188,12 @@ export default async function DashboardPage({
                   filtros aplicados.
                 </p>
                 <CreateTransactionForm
-                  categories={[incomeCategories, outcomeCategories]}
+                  categories={{
+                    income: categories.filter(({ type }) => type === "INCOME"),
+                    outcome: categories.filter(
+                      ({ type }) => type === "OUTCOME",
+                    ),
+                  }}
                 />
               </div>
             ) : null}
@@ -170,16 +207,26 @@ export default async function DashboardPage({
         </div>
       </div>
 
-      <footer className="p-4 fixed bottom-0 bg-background w-full">
-        <section className="flex md:hidden items-center justify-between">
-          <div className="flex gap-1">
+      <footer className="p-4 px-8 fixed bottom-0 bg-background w-full lg:hidden">
+        <section className="flex items-center justify-between">
+          <div className="flex flex-col gap-1">
             <NavigationDates />
+            <span className="text-xs text-muted-foreground capitalize">
+              {format(searchParams.date ?? DEFAULT_DATE, "MMMM, yyyy", {
+                locale: ptBR,
+              })}
+            </span>
           </div>
 
           <div className="flex gap-2">
             <CreateTransactionForm
-              categories={[incomeCategories, outcomeCategories]}
+              categories={{
+                income: categories.filter(({ type }) => type === "INCOME"),
+                outcome: categories.filter(({ type }) => type === "OUTCOME"),
+              }}
             />
+
+            <ToggleTheme align="end" />
           </div>
         </section>
       </footer>

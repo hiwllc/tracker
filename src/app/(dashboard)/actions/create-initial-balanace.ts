@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { Balance } from "~/database/repositories/balance";
 
+// @todo use result patern { success: boolean, data | error }
 export const createInitialBalance = procedure
   .createServerAction()
   .input(
@@ -14,11 +15,6 @@ export const createInitialBalance = procedure
     }),
   )
   .handler(async ({ input, ctx }) => {
-    const { user } = ctx;
-
     await Balance.create(number(input.value));
-
-    revalidatePath(`/dashboard`, "page");
-
-    return { user };
+    revalidatePath("/dashboard", "page");
   });

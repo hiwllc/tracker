@@ -1,6 +1,6 @@
 "use client";
 
-import { format } from "date-fns";
+import { format, isBefore } from "date-fns";
 import {
   LoaderIcon,
   MinusIcon,
@@ -10,6 +10,7 @@ import {
   ThumbsDownIcon,
   ThumbsUpIcon,
   TrashIcon,
+  TriangleAlertIcon,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent } from "~/components/ui/card";
@@ -44,6 +45,9 @@ import {
   DialogTitle,
 } from "~/components/ui/dialog";
 import { useDisclosure } from "~/hooks/use-disclosure";
+import { ptBR } from "date-fns/locale";
+import { useParams } from "~/hooks/use-params";
+import Link from "next/link";
 
 const column = createColumnHelper<Transaction>();
 
@@ -55,6 +59,7 @@ export function ListTransactionsTable({ transactions }: Props) {
   const [updating, setUpdating] = useState<string | null>(null);
   const [trx, setTrx] = useState<Transaction | null>(null);
   const { isOpened, toggle, close } = useDisclosure({ initialState: "closed" });
+  const { pathname, createQueryString } = useParams();
 
   const update = useServerAction(updateTransactionPaidStatus);
 
@@ -71,14 +76,27 @@ export function ListTransactionsTable({ transactions }: Props) {
     column.accessor("name", {
       header: "Transação",
       cell: (props) => {
-        const { name, category, dueAt, interval } = props.row.original;
+        const { name, category, dueAt, interval, paidAt } = props.row.original;
 
         return (
           <div className="flex flex-col">
-            <div className="flex gap-2 items-center">
-              {interval !== "UNIQUE" ? (
-                <Repeat2Icon className="size-4 text-muted-foreground" />
-              ) : null}
+            <div className="flex flex-col lg:flex-row gap-2 items-start lg:items-center">
+              <div className="flex gap-2 pb-2 lg:pb-0">
+                {isBefore(dueAt, new Date()) && !paidAt ? (
+                  <>
+                    <span className="sr-only">
+                      A transação {name} está a atrasada, esta conta venceu em{" "}
+                      {format(dueAt, "dd 'de' MMMM", { locale: ptBR })}
+                    </span>
+                    <TriangleAlertIcon className="size-4 text-muted-foreground flex-shrink" />
+                  </>
+                ) : null}
+
+                {interval !== "UNIQUE" ? (
+                  <Repeat2Icon className="size-4 text-muted-foreground flex-shrink" />
+                ) : null}
+              </div>
+
               <p className="text-sm font-medium">{name}</p>
             </div>
 
@@ -98,7 +116,13 @@ export function ListTransactionsTable({ transactions }: Props) {
       cell: (props) => {
         const category = props.getValue();
 
-        return <Badge variant="outline">{category.name}</Badge>;
+        return (
+          <Link
+            href={`${pathname}?${createQueryString("category", category.id)}`}
+          >
+            <Badge variant="outline">{category.name}</Badge>
+          </Link>
+        );
       },
     }),
     column.accessor("value", {

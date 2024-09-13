@@ -34,7 +34,7 @@
     "drizzle-orm": "^0.32.2",
     "drizzle-zod": "^0.5.1",
     "lucide-react": "^0.424.0",
-    "next": "14.2.8",
+    "next": "14.2.11",
     "next-themes": "^0.3.0",
     "postgres": "^3.4.4",
     "react": "^18.3.1",

@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import { Category } from "~/database/schemas";
+import type { Category } from "~/database/schemas";
 import { useParams } from "~/hooks/use-params";
 
 const status = [
@@ -36,7 +36,7 @@ export function FilterTransactions({
       <Select
         defaultValue={current?.value}
         onValueChange={(value) =>
-          router.push(pathname + "?" + createQueryString("status", value))
+          router.push(`${pathname}?${createQueryString("status", value)}`)
         }
       >
         <SelectTrigger>
@@ -55,7 +55,7 @@ export function FilterTransactions({
       <Select
         defaultValue={(qs.get("category") as string) ?? "all"}
         onValueChange={(value) =>
-          router.push(pathname + "?" + createQueryString("category", value))
+          router.push(`${pathname}?${createQueryString("category", value)}`)
         }
       >
         <SelectTrigger>

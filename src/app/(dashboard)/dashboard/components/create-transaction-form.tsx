@@ -58,10 +58,15 @@ import { Switch } from "~/components/ui/switch";
 type Schema = z.infer<typeof schema>;
 
 type Props = {
-  categories: Array<Array<Pick<Category, "id" | "name">>>;
+  categories: Record<
+    "income" | "outcome",
+    Array<Pick<Category, "id" | "name">>
+  >;
 };
 
-export function CreateTransactionForm({ categories: tuple }: Props) {
+export function CreateTransactionForm({
+  categories: { income, outcome },
+}: Props) {
   const { isOpened, toggle, close } = useDisclosure({ initialState: "closed" });
 
   const form = useForm<Schema>({
@@ -85,7 +90,7 @@ export function CreateTransactionForm({ categories: tuple }: Props) {
   });
 
   const type = form.watch("type");
-  const categories = type === "INCOME" ? tuple.at(0) : tuple.at(1);
+  const categories = type === "INCOME" ? income : outcome;
 
   const onSubmit = async (data: Schema) => {
     await execute(data);
@@ -273,13 +278,8 @@ export function CreateTransactionForm({ categories: tuple }: Props) {
                       </SelectTrigger>
 
                       <SelectContent>
-                        <SelectItem value="WEEKLY" disabled>
-                          Semanal
-                        </SelectItem>
                         <SelectItem value="MONTHLY">Mensal</SelectItem>
-                        <SelectItem value="YEARLY" disabled>
-                          Anual
-                        </SelectItem>
+                        <SelectItem value="YEARLY">Anual</SelectItem>
                         <SelectItem value="INSTALLMENTS" disabled>
                           Parcelada
                         </SelectItem>
@@ -324,9 +324,9 @@ function ModalForm({
     return (
       <Dialog open={isOpened} onOpenChange={toggle}>
         <DialogTrigger asChild>
-          <Button className="h-8 gap-2">
+          <Button className="h-8 gap-2 flex-1">
             <PlusIcon className="size-4" />
-            Adicionar
+            Adicionar nova transação
           </Button>
         </DialogTrigger>
 

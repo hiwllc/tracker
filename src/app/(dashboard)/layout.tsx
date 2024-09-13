@@ -1,7 +1,6 @@
 import { UserButton } from "@clerk/nextjs";
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Logo } from "~/components/logo";
-import { ToggleTheme } from "~/components/theme/toggle";
 
 export default function DashboardLayout({
   children,
@@ -21,7 +20,6 @@ export default function DashboardLayout({
               }}
               showName
             />
-            <ToggleTheme />
           </div>
         </div>
       </header>

@@ -5,6 +5,7 @@ import { Transactions } from "~/database/repositories/transactions";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+// @todo use result patern { success: boolean, data | error }
 export const deleteTranasctionAction = procedure
   .createServerAction()
   .input(
@@ -14,11 +15,6 @@ export const deleteTranasctionAction = procedure
     }),
   )
   .handler(async ({ input, ctx }) => {
-    const { user } = ctx;
-
     await Transactions.remove(input.id, input.reference);
-
-    revalidatePath(`/dashboard`, "page");
-
-    return { user };
+    revalidatePath("/dashboard", "page");
   });

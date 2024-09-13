@@ -5,15 +5,18 @@ import { MoveLeftIcon, MoveRightIcon } from "lucide-react";
 import Link from "next/link";
 import { Button } from "~/components/ui/button";
 import { useParams } from "~/hooks/use-params";
+import { DEFAULT_DATE } from "../../constants";
 
 export function NavigationDates() {
   const { createQueryString, qs, pathname } = useParams();
-  const currentDate = toDate(qs.get("date") as string);
+
+  const currentDate = toDate((qs.get("date") as string) ?? DEFAULT_DATE);
+
   const previousDate = subMonths(currentDate, 1);
   const nextDate = addMonths(currentDate, 1);
 
   return (
-    <>
+    <div className="flex gap-2">
       <Button className="h-8 p-0" size="icon" variant="outline" asChild>
         <Link
           href={`${pathname}?${createQueryString("date", previousDate.toISOString())}`}
@@ -30,6 +33,6 @@ export function NavigationDates() {
           <span className="sr-only">Próximo período</span>
         </Link>
       </Button>
-    </>
+    </div>
   );
 }

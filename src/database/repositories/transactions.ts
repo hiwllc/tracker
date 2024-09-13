@@ -1,19 +1,22 @@
 import { auth } from "@clerk/nextjs/server";
-import { db } from "..";
+import { type Database, db } from "..";
 import {
   addMonths,
+  addYears,
   differenceInMonths,
+  differenceInYears,
   endOfMonth,
   startOfMonth,
 } from "date-fns";
 import {
   balance,
-  Category,
+  type Category,
   createTransactionSchema,
+  type Transaction,
   transactions,
 } from "../schemas";
 import { z } from "zod";
-import { and, desc, eq, or } from "drizzle-orm";
+import { and, desc, eq, notInArray, or } from "drizzle-orm";
 import crypto from "node:crypto";
 
 const createTransactionPayload = createTransactionSchema.omit({
@@ -42,76 +45,52 @@ export const updateTransactionPayload = createTransactionSchema
     user: true,
   });
 
+export type PaidStatus = "paid" | "unpaid" | "all";
+
+type AllTransactionsFilters = {
+  date: Date;
+  status?: PaidStatus;
+  category?: string;
+};
+
+function calculateNextDueDate({
+  interval,
+  date,
+}: {
+  interval?: Transaction["interval"];
+  date: Date;
+}) {
+  switch (interval) {
+    case "MONTHLY":
+      return addMonths(date, 1);
+    case "YEARLY":
+      return addYears(date, 1);
+    default:
+      return null;
+  }
+}
+
 export const Transactions = {
   all: async ({
     date = startOfMonth(new Date()),
     status = "unpaid",
     category = "all",
-  }: {
-    date: Date;
-    status?: "all" | "paid" | "unpaid";
-    category?: string;
-  }) => {
+  }: AllTransactionsFilters) => {
     const { userId } = auth();
 
+    const isFilteredByUnpaid = status === "unpaid";
+    const isFilteredByPaid = status === "paid";
+    const isFilteredByCategory = category !== "all";
+
     const result = await db.query.transactions.findMany({
-      where: (trx, { and, eq, gte, lt, isNull, isNotNull }) => {
+      where: (t, { and, eq, gte, lt, isNotNull, isNull }) => {
         return and(
-          eq(trx.user, String(userId)),
-          gte(trx.dueAt, date),
-          lt(trx.dueAt, addMonths(date, 1)),
-          category === "all" ? undefined : eq(trx.category, category),
-          status === "all"
-            ? undefined
-            : status === "unpaid"
-              ? isNull(trx.paidAt)
-              : isNotNull(trx.paidAt),
-        );
-      },
-      with: {
-        category: {
-          columns: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-      orderBy: (trx, { asc }) => [asc(trx.dueAt), asc(trx.createdAt)],
-    });
-
-    // references não pode ter status
-    const references = result
-      .map(({ reference }) => reference)
-      .filter(Boolean) as string[];
-
-    const time = await db.query.transactions.findMany({
-      where: (t, { and, eq, gte, lt }) =>
-        and(
           eq(t.user, String(userId)),
           gte(t.dueAt, date),
           lt(t.dueAt, addMonths(date, 1)),
-        ),
-    });
-
-    const timeRef = time
-      .map(({ reference }) => reference)
-      .filter(Boolean) as string[];
-
-    const recurrency = await db.query.transactions.findMany({
-      where: (t, { and, eq, lte, isNull, isNotNull, notInArray }) => {
-        return and(
-          eq(t.user, String(userId)),
-          lte(t.nextDueAt, endOfMonth(date)),
-          isNull(t.reference),
-
-          notInArray(t.id, [...references, ...timeRef]),
-
-          category === "all" ? undefined : eq(t.category, category),
-          status === "all"
-            ? undefined
-            : status === "unpaid"
-              ? isNull(t.paidAt)
-              : isNotNull(t.paidAt),
+          isFilteredByPaid ? isNotNull(t.paidAt) : undefined,
+          isFilteredByUnpaid ? isNull(t.paidAt) : undefined,
+          isFilteredByCategory ? eq(t.category, category) : undefined,
         );
       },
       with: {
@@ -125,23 +104,16 @@ export const Transactions = {
       orderBy: (t, { asc }) => [asc(t.dueAt), asc(t.createdAt)],
     });
 
-    // @todo seperate this in another funcion
-    const virtualized = recurrency.map((t) => {
-      const dueAt = addMonths(
-        t.dueAt,
-        differenceInMonths(date, startOfMonth(t.dueAt)),
-      );
-      const nextDueAt = addMonths(t.nextDueAt as Date, 1);
-
-      return {
-        ...t,
-        id: crypto.randomUUID(),
-        reference: t.id,
-        dueAt,
-        nextDueAt,
-        paidAt: null,
-        virtual: true,
-      };
+    /** here we are going to get all recurring transactions */
+    const virtualized = await Transactions._recurring({
+      transactions: result,
+      user: String(userId),
+      db,
+      date,
+      isFilteredByCategory,
+      category,
+      isFilteredByPaid,
+      isFilteredByUnpaid,
     });
 
     return [...result, ...virtualized].map(({ category, ...transacation }) => ({
@@ -150,16 +122,122 @@ export const Transactions = {
     }));
   },
 
-  /** @todo calculate the next due date from transaction */
-  // calculate next due date in monthly
-  // calcular next due date in weekly
-  // calcular next due date in yearly
+  /**
+   * @private do not use this!
+   */
+  _recurring: async ({
+    transactions,
+    db,
+    user,
+    date,
+    isFilteredByCategory,
+    category,
+    isFilteredByPaid,
+    isFilteredByUnpaid,
+  }: {
+    transactions: Transaction[];
+    user: string;
+    db: Database;
+    date: Date;
+    isFilteredByCategory: boolean;
+    category: string;
+    isFilteredByUnpaid: boolean;
+    isFilteredByPaid: boolean;
+  }) => {
+    /** references from current period transactions that can be filtered */
+    const referencesFromFiltered = transactions
+      .map(({ reference }) => reference)
+      .filter(Boolean) as string[];
+
+    /** all transactions but without filters */
+    const transactionsPeriodsWithoutFilters =
+      await db.query.transactions.findMany({
+        where: (t, { and, eq, gte, lt }) => {
+          return and(
+            eq(t.user, String(user)),
+            gte(t.dueAt, date),
+            lt(t.dueAt, addMonths(date, 1)),
+          );
+        },
+      });
+
+    const referencesFromUnfiltered = transactionsPeriodsWithoutFilters
+      .map(({ reference }) => reference)
+      .filter(Boolean) as string[];
+
+    const parentRecurringTransactions = await db.query.transactions.findMany({
+      where: (t, { and, eq, lte, isNull, isNotNull }) => {
+        return and(
+          eq(t.user, user),
+          lte(t.nextDueAt, endOfMonth(date)),
+          isNull(t.reference),
+          notInArray(t.id, [
+            ...referencesFromFiltered,
+            ...referencesFromUnfiltered,
+          ]),
+          isFilteredByCategory ? eq(t.category, category) : undefined,
+          isFilteredByPaid ? isNotNull(t.paidAt) : undefined,
+          isFilteredByUnpaid ? isNull(t.paidAt) : undefined,
+        );
+      },
+      with: {
+        category: {
+          columns: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: (t, { asc }) => [asc(t.dueAt), asc(t.createdAt)],
+    });
+
+    function calculateDueAtAndNextDueAtDates(t: Transaction, date: Date) {
+      switch (t.interval) {
+        case "MONTHLY":
+          return {
+            dueAt: addMonths(
+              t.dueAt,
+              differenceInMonths(date, startOfMonth(t.dueAt)),
+            ),
+            nextDueAt: addMonths(t.nextDueAt as Date, 1),
+          };
+        case "YEARLY":
+          return {
+            dueAt: addYears(
+              t.dueAt,
+              differenceInYears(date, startOfMonth(t.dueAt)),
+            ),
+            nextDueAt: addYears(t.nextDueAt as Date, 1),
+          };
+        default:
+          return {
+            dueAt: t.dueAt,
+            nextDueAt: t.nextDueAt,
+          };
+      }
+    }
+
+    const virtualized = parentRecurringTransactions.map((t) => {
+      return {
+        ...t,
+        id: crypto.randomUUID(),
+        reference: t.id,
+        paidAt: null,
+        virtual: true,
+        ...calculateDueAtAndNextDueAtDates(t, date),
+      };
+    });
+
+    return virtualized.flat();
+  },
+
   create: async (data: z.input<typeof createTransactionPayload>) => {
     const { userId } = auth();
 
-    /** @todo calcular próxima data para weekly and yearly */
-    const nextDueAt =
-      data.interval === "MONTHLY" ? addMonths(data.dueAt, 1) : null;
+    const nextDueAt = calculateNextDueDate({
+      interval: data.interval,
+      date: data.dueAt,
+    });
 
     return db.insert(transactions).values({
       user: String(userId),

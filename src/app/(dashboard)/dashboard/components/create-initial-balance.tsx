@@ -25,6 +25,15 @@ import { currency } from "~/lib/formatters";
 import { useServerAction } from "zsa-react";
 import { createInitialBalance } from "../../actions/create-initial-balanace";
 import { LoaderIcon } from "lucide-react";
+import { useState } from "react";
+import {
+  Modal,
+  ModalContent,
+  ModalDescription,
+  ModalFooter,
+  ModalHeader,
+  ModalTitle,
+} from "~/components/responsive-modal";
 
 type Props = {
   defaultOpen?: boolean;
@@ -36,10 +45,8 @@ const schema = z.object({
 
 type Schema = z.infer<typeof schema>;
 
-export function CreateInitialBalance({ defaultOpen }: Props) {
-  const { isOpened, toggle } = useDisclosure({
-    initialState: defaultOpen ? "opened" : "closed",
-  });
+export function CreateInitialBalance({ defaultOpen = false }: Props) {
+  const [opened, setOpened] = useState(defaultOpen);
 
   const form = useForm<Schema>({
     defaultValues: {
@@ -51,7 +58,7 @@ export function CreateInitialBalance({ defaultOpen }: Props) {
   const { execute, isPending } = useServerAction(createInitialBalance, {
     onSuccess: () => {
       form.reset();
-      toggle();
+      setOpened(false);
     },
   });
 
@@ -60,21 +67,23 @@ export function CreateInitialBalance({ defaultOpen }: Props) {
   };
 
   return (
-    <Dialog open={isOpened}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Saldo inicial</DialogTitle>
-          <DialogDescription>
+    <Modal open={opened} onOpenChange={setOpened} dismissible={false}>
+      <ModalContent
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+        closable={false}
+      >
+        <ModalHeader>
+          <ModalTitle>Saldo inicial</ModalTitle>
+          <ModalDescription>
             Informe o seu saldo inicial, para pode continuar usando a aplicação.
-          </DialogDescription>
-        </DialogHeader>
+          </ModalDescription>
+        </ModalHeader>
 
-        <div>
+        <div className="px-6 md:px-0">
           <Form {...form}>
-            <form
-              className="space-y-6"
-              onSubmit={form.handleSubmit(handleSubmit)}
-            >
+            <form onSubmit={form.handleSubmit(handleSubmit)}>
               <FormField
                 control={form.control}
                 name="balance"
@@ -96,8 +105,8 @@ export function CreateInitialBalance({ defaultOpen }: Props) {
                 )}
               />
 
-              <DialogFooter>
-                <Button size="sm" className="w-[130px]">
+              <ModalFooter className="px-0 lg:pt-4">
+                <Button size="sm" className="w-full md:w-[130px]">
                   {isPending ? (
                     <>
                       <LoaderIcon className="size-4 animate-spin" />
@@ -109,11 +118,11 @@ export function CreateInitialBalance({ defaultOpen }: Props) {
                     "Adicionar Saldo"
                   )}
                 </Button>
-              </DialogFooter>
+              </ModalFooter>
             </form>
           </Form>
         </div>
-      </DialogContent>
-    </Dialog>
+      </ModalContent>
+    </Modal>
   );
 }

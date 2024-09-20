@@ -30,6 +30,19 @@ import {
 import { CreateInitialBalance } from "./components/create-initial-balance";
 import { DEFAULT_DATE } from "../constants";
 import { ToggleTheme } from "~/components/theme/toggle";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "~/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
 
 type Params = {
   date?: string;
@@ -72,7 +85,11 @@ export default async function DashboardPage({
 }: {
   searchParams: Params;
 }) {
-  const { balance, categories, transactions } = await getUserDataForDashboard({
+  const {
+    balance,
+    categories: allCategories,
+    transactions,
+  } = await getUserDataForDashboard({
     date: searchParams.date ?? DEFAULT_DATE,
     status: searchParams.status,
     category: searchParams.category,
@@ -101,6 +118,11 @@ export default async function DashboardPage({
     { income: 0, outcome: 0, balance: balance ? number(balance) : 0 },
   );
 
+  const categories = {
+    income: allCategories.filter(({ type }) => type === "INCOME"),
+    outcome: allCategories.filter(({ type }) => type === "OUTCOME"),
+  };
+
   return (
     <>
       <CreateInitialBalance defaultOpen={!balance} />
@@ -108,12 +130,7 @@ export default async function DashboardPage({
         <div className="flex flex-col lg:grid lg:grid-cols-[280px_1fr] gap-6 py-6 min-h-[calc(100dvh-160px)]">
           <aside className="flex flex-col gap-4 text-balance lg:sticky lg:top-[104px] lg:h-[calc(100dvh-120px)]">
             <div className="gap-2 hidden lg:flex">
-              <CreateTransactionForm
-                categories={{
-                  income: categories.filter(({ type }) => type === "INCOME"),
-                  outcome: categories.filter(({ type }) => type === "OUTCOME"),
-                }}
-              />
+              <CreateTransactionForm categories={categories} />
             </div>
 
             <div className="hidden lg:flex gap-2 w-full">
@@ -168,12 +185,7 @@ export default async function DashboardPage({
               </CardContent>
             </Card>
 
-            <FilterTransactions
-              categories={{
-                income: categories.filter(({ type }) => type === "INCOME"),
-                outcome: categories.filter(({ type }) => type === "OUTCOME"),
-              }}
-            />
+            <FilterTransactions categories={categories} />
 
             <div className="mt-auto hidden lg:block">
               <ToggleTheme align="start" />
@@ -187,14 +199,7 @@ export default async function DashboardPage({
                   Você ainda não tem nenhuma transação neste período, ou com os
                   filtros aplicados.
                 </p>
-                <CreateTransactionForm
-                  categories={{
-                    income: categories.filter(({ type }) => type === "INCOME"),
-                    outcome: categories.filter(
-                      ({ type }) => type === "OUTCOME",
-                    ),
-                  }}
-                />
+                <CreateTransactionForm categories={categories} />
               </div>
             ) : null}
 
@@ -209,24 +214,16 @@ export default async function DashboardPage({
 
       <footer className="p-4 px-8 fixed bottom-0 bg-background w-full lg:hidden">
         <section className="flex items-center justify-between">
-          <div className="flex flex-col gap-1">
+          <span className="text-xs text-muted-foreground capitalize">
+            {format(searchParams.date ?? DEFAULT_DATE, "MMMM, yyyy", {
+              locale: ptBR,
+            })}
+          </span>
+
+          <div className="flex gap-3">
             <NavigationDates />
-            <span className="text-xs text-muted-foreground capitalize">
-              {format(searchParams.date ?? DEFAULT_DATE, "MMMM, yyyy", {
-                locale: ptBR,
-              })}
-            </span>
-          </div>
 
-          <div className="flex gap-2">
-            <CreateTransactionForm
-              categories={{
-                income: categories.filter(({ type }) => type === "INCOME"),
-                outcome: categories.filter(({ type }) => type === "OUTCOME"),
-              }}
-            />
-
-            <ToggleTheme align="end" />
+            <CreateTransactionForm categories={categories} />
           </div>
         </section>
       </footer>

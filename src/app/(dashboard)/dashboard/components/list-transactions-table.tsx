@@ -48,6 +48,15 @@ import { useDisclosure } from "~/hooks/use-disclosure";
 import { ptBR } from "date-fns/locale";
 import { useParams } from "~/hooks/use-params";
 import Link from "next/link";
+import {
+  Modal,
+  ModalClose,
+  ModalContent,
+  ModalDescription,
+  ModalFooter,
+  ModalHeader,
+  ModalTitle,
+} from "~/components/responsive-modal";
 
 const column = createColumnHelper<Transaction>();
 
@@ -58,8 +67,9 @@ type Props = {
 export function ListTransactionsTable({ transactions }: Props) {
   const [updating, setUpdating] = useState<string | null>(null);
   const [trx, setTrx] = useState<Transaction | null>(null);
-  const { isOpened, toggle, close } = useDisclosure({ initialState: "closed" });
+  // const { isOpened, toggle, close } = useDisclosure({ initialState: false });
   const { pathname, createQueryString } = useParams();
+  const [opened, setOpened] = useState(false);
 
   const update = useServerAction(updateTransactionPaidStatus);
 
@@ -233,7 +243,7 @@ export function ListTransactionsTable({ transactions }: Props) {
               variant="ghost"
               onClick={() => {
                 setTrx(trx);
-                toggle();
+                setOpened(true);
               }}
             >
               <TrashIcon className="size-4" />
@@ -298,31 +308,34 @@ export function ListTransactionsTable({ transactions }: Props) {
       </Card>
 
       {trx ? (
-        <Dialog open={isOpened} onOpenChange={toggle}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Excluir transação</DialogTitle>
-            </DialogHeader>
+        <Modal open={opened} onOpenChange={setOpened}>
+          <ModalContent>
+            <ModalHeader>
+              <ModalTitle>Excluir Transação</ModalTitle>
+            </ModalHeader>
 
-            <p className="text-foreground text-sm">
-              Você está excluindo uma transação, essa ação não pode ser
-              desfeita,{" "}
-              {trx.interval !== "UNIQUE"
-                ? "esta é uma transaçao que se repete, ao excluir esta transação as transações futuras e passadas também serão excluidas,"
-                : ""}{" "}
-              tem certeza que deseja excluir?
-            </p>
+            <ModalDescription asChild>
+              <p className="text-foreground text-sm px-6 lg:px-0 text-center lg:text-left">
+                Você está excluindo uma transação, essa ação não pode ser
+                desfeita,{" "}
+                {trx.interval !== "UNIQUE"
+                  ? "esta é uma transaçao que se repete, ao excluir esta transação as transações futuras e passadas também serão excluidas,"
+                  : ""}{" "}
+                tem certeza que deseja excluir?
+              </p>
+            </ModalDescription>
 
-            <DialogFooter>
-              <DialogClose>
-                <Button type="button" size="sm">
+            <ModalFooter>
+              <ModalClose>
+                <Button type="button" size="sm" className="w-full lg:w-fit">
                   Não quero excluir
                 </Button>
-              </DialogClose>
+              </ModalClose>
+
               <Button
                 size="sm"
                 variant="destructive"
-                className="w-[142px]"
+                className="w-full lg:w-[142px]"
                 onClick={() => {
                   setUpdating(trx.id);
                   remove.execute({ id: trx.id, reference: trx.reference });
@@ -339,9 +352,9 @@ export function ListTransactionsTable({ transactions }: Props) {
                   "Sim, quero excluir"
                 )}
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
       ) : null}
     </>
   );

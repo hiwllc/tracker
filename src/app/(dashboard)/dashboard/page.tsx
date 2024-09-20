@@ -53,7 +53,7 @@ async function getUserDataForDashboard({
   const [balance, categories, transactions] = await Promise.all([
     Balance.get(),
     Categories.all(),
-    Transactions.all({ date: toDate(date), status }),
+    Transactions.all({ date: toDate(date), category, status }),
   ]);
 
   return {

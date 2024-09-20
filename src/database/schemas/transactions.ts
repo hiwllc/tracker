@@ -6,7 +6,7 @@ import {
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
-import { categories, Category } from "./categories";
+import { categories, type Category } from "./categories";
 import { relations } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 
@@ -32,6 +32,7 @@ export const transactions = pgTable("transactions", {
   type: transactionsType("type").default("OUTCOME").notNull(),
   interval: transactionsInterval("interval").default("UNIQUE").notNull(),
   installments: integer("installments"),
+  installment: integer("installment"),
   reference: uuid("reference"),
   value: integer("value").notNull(),
   category: uuid("category_id")

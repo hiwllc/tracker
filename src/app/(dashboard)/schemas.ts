@@ -6,7 +6,15 @@ export const schema = z.object({
   value: z.string(),
   description: z.string(),
   category: z.string(),
-  dueDate: z.date(),
-  interval: z.enum(["DAILY", "WEEKLY", "MONTHLY", "YEARLY", "UNIQUE"]),
+  dueAt: z.date(),
+  interval: z.enum([
+    "DAILY",
+    "WEEKLY",
+    "MONTHLY",
+    "YEARLY",
+    "UNIQUE",
+    "INSTALLMENTS",
+  ]),
+  installments: z.string().optional(),
   repeatable: z.boolean().optional(),
 });

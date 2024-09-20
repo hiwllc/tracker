@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -28,7 +29,7 @@ import {
 import { Button } from "~/components/ui/button";
 import { CalendarIcon, LoaderIcon, PlusIcon } from "lucide-react";
 import { Input } from "~/components/ui/input";
-import { currency } from "~/lib/formatters";
+import { currency, number } from "~/lib/formatters";
 import { Textarea } from "~/components/ui/textarea";
 import { format } from "date-fns";
 import {
@@ -76,8 +77,9 @@ export function CreateTransactionForm({
       category: "",
       value: "",
       description: "",
-      dueDate: new Date(),
+      dueAt: new Date(),
       interval: "UNIQUE",
+      installments: "",
       repeatable: false,
     },
   });
@@ -91,6 +93,7 @@ export function CreateTransactionForm({
 
   const type = form.watch("type");
   const categories = type === "INCOME" ? income : outcome;
+  const hasInstallments = form.watch("interval") === "INSTALLMENTS";
 
   const onSubmit = async (data: Schema) => {
     await execute(data);
@@ -181,10 +184,7 @@ export function CreateTransactionForm({
                   <Input
                     {...field}
                     onChange={({ target }) => {
-                      form.setValue(
-                        "value",
-                        currency(Number(target.value.replace(/\D+/g, ""))),
-                      );
+                      form.setValue("value", currency(number(target.value)));
                     }}
                   />
                 </FormControl>
@@ -195,7 +195,7 @@ export function CreateTransactionForm({
 
           <FormField
             control={form.control}
-            name="dueDate"
+            name="dueAt"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Vencimento</FormLabel>
@@ -280,12 +280,32 @@ export function CreateTransactionForm({
                       <SelectContent>
                         <SelectItem value="MONTHLY">Mensal</SelectItem>
                         <SelectItem value="YEARLY">Anual</SelectItem>
-                        <SelectItem value="INSTALLMENTS" disabled>
-                          Parcelada
-                        </SelectItem>
+                        <SelectItem value="INSTALLMENTS">Parcelada</SelectItem>
                       </SelectContent>
                     </Select>
                   </FormControl>
+                </FormItem>
+              )}
+            />
+          ) : null}
+
+          {hasInstallments ? (
+            <FormField
+              control={form.control}
+              name="installments"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      placeholder="Informe o número de parcelas"
+                      type="number"
+                      min="2"
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    As parcelas são registradas para pagamento mensal.
+                  </FormDescription>
                 </FormItem>
               )}
             />

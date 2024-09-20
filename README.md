@@ -3,16 +3,24 @@
 
 
 ## Todo
-- Add tooltip for icons (pagar, não pagar, deletar, conta se repete)
-- Show transactions descriptions (ver -> editar)
-- Update transactions (atualizar, se for uma conta virtual criar uma nova)
-  - Se alterar uma conta virtual e a atualização for o valor, precisamos criar uma nova referência onde os valores a partir de agora são estes.
-- Quando excluir uma transação recorrente, podemos marcar ela como completada e remover apenas a partir daquele ponto.
-- Add date interval selection
-- Weekly email for the next transactions
-- Import/Export CSV
-- Reset user account
-  - Before reset, allow user to download the CSV from the current state of account
-- Allow categories management (create, update and delete custom)
-- Allow settings management (settings notifications, webhooks, api)
-- Allow plan selection (R$ 2.00/m, R$10/y)
+### Prioridades
+- Enviar e-mail semanal para contas cadastradas com as contas da semana, resumo de despesa, resumo de receitas e contas atrasadas.
+- Poder editar as transações
+  - Transações que não se repetem
+  - Transações que se repetem deve poder:
+    - Alterar o valor apenas da transação atual
+    - Alterar os valores da transação atual e futuras
+    - Alterar os valores de todas as transações
+    - Ao atualizar o valor precisa verificar SE ela está paga/recebida e refletir este vaor no saldo.
+- Adicionar uma legenda para os icones
+- Ao excluir uma transação recorrente:
+  - Excluir apenas aquela ocorrência
+  - Excluir a ocorrência atual e as futuras
+  - Excluir todas as recorrências
+- Adicionar filtro por data de início e fim
+- Importar e exportar CSV
+- Permitir ao usuário resetar sua conta:
+  - Antes de resetar permitir ao usuário baixar o CSV dos seus dados.
+- Gerenciar categorias personalizadas.
+- Gerenciar notificações.
+- Planos e Pagamentos.

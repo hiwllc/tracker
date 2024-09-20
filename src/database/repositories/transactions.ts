@@ -23,7 +23,6 @@ const createTransactionPayload = createTransactionSchema.omit({
   id: true,
   user: true,
   paidAt: true,
-  installments: true,
   nextDueAt: true,
   createdAt: true,
   deletedAt: true,
@@ -166,7 +165,7 @@ export const Transactions = {
       .filter(Boolean) as string[];
 
     const parentRecurringTransactions = await db.query.transactions.findMany({
-      where: (t, { and, eq, lte, isNull, isNotNull }) => {
+      where: (t, { and, eq, ne, lte, isNull, isNotNull }) => {
         return and(
           eq(t.user, user),
           lte(t.nextDueAt, endOfMonth(date)),
@@ -175,6 +174,7 @@ export const Transactions = {
             ...referencesFromFiltered,
             ...referencesFromUnfiltered,
           ]),
+          ne(t.interval, "INSTALLMENTS"),
           isFilteredByCategory ? eq(t.category, category) : undefined,
           isFilteredByPaid ? isNotNull(t.paidAt) : undefined,
           isFilteredByUnpaid ? isNull(t.paidAt) : undefined,
@@ -233,6 +233,34 @@ export const Transactions = {
 
   create: async (data: z.input<typeof createTransactionPayload>) => {
     const { userId } = auth();
+
+    if (data.installments) {
+      const [first, ...trxs] = [...Array(data.installments).keys()].map((i) => {
+        const installment = i + 1;
+        const isLastInstallment = installment >= Number(data.installments);
+        const nextDueAt = isLastInstallment
+          ? undefined
+          : addMonths(data.dueAt, installment);
+
+        return {
+          ...data,
+          user: String(userId),
+          installment: installment,
+          dueAt: addMonths(data.dueAt, i),
+          nextDueAt,
+        };
+      });
+
+      return db.transaction(async (tx) => {
+        const [{ id: reference }] = await tx
+          .insert(transactions)
+          .values(first)
+          .returning({ id: transactions.id });
+        await tx
+          .insert(transactions)
+          .values(trxs.map((t) => ({ ...t, reference })));
+      });
+    }
 
     const nextDueAt = calculateNextDueDate({
       interval: data.interval,

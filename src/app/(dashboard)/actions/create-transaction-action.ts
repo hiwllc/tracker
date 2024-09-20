@@ -7,14 +7,14 @@ import { number } from "~/lib/formatters";
 import { revalidatePath } from "next/cache";
 import { startOfDay } from "date-fns";
 
-// @todo use result patern { success: boolean, data | error }
 export const createTransactionAction = procedure
   .createServerAction()
   .input(schema)
-  .handler(async ({ input, ctx }) => {
+  .handler(async ({ input }) => {
     await Transactions.create({
       ...input,
-      dueAt: startOfDay(input.dueDate),
+      installments: input.installments ? number(input.installments) : undefined,
+      dueAt: startOfDay(input.dueAt),
       value: number(input.value),
     });
     revalidatePath("/dashboard", "page");

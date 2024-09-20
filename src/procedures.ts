@@ -8,6 +8,6 @@ export const procedure = createServerActionProcedure().handler(async () => {
 
     return { user: { id: userId } };
   } catch {
-    throw new Error(`Unauthenticated`);
+    throw new Error("Unauthenticated");
   }
 });

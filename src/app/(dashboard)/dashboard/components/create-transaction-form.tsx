@@ -43,24 +43,12 @@ import type { Category } from "~/database/schemas";
 import type { schema } from "../../schemas";
 import { useServerAction } from "zsa-react";
 import { createTransactionAction } from "../../actions/create-transaction-action";
-import { useDisclosure } from "~/hooks/use-disclosure";
-import { useState, type ReactNode } from "react";
+
+import { useState } from "react";
 import { useMediaQuery } from "~/hooks/use-media-query";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "~/components/ui/drawer";
+
 import { Switch } from "~/components/ui/switch";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu";
+
 import {
   Modal,
   ModalContent,
@@ -102,7 +90,7 @@ export function CreateTransactionForm({
 
   const { execute, isPending } = useServerAction(createTransactionAction, {
     onFinish(result) {
-      close();
+      setOpened(false);
       form.reset();
     },
   });

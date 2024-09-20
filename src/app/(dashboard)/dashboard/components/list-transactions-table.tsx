@@ -6,7 +6,6 @@ import {
   MinusIcon,
   PlusIcon,
   Repeat2Icon,
-  RepeatIcon,
   ThumbsDownIcon,
   ThumbsUpIcon,
   TrashIcon,
@@ -36,15 +35,6 @@ import { updateTransactionPaidStatus } from "../../actions/update-transaction-pa
 import { useState } from "react";
 import { useMediaQuery } from "~/hooks/use-media-query";
 import { deleteTranasctionAction } from "../../actions/delete-transaction-action";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "~/components/ui/dialog";
-import { useDisclosure } from "~/hooks/use-disclosure";
 import { ptBR } from "date-fns/locale";
 import { useParams } from "~/hooks/use-params";
 import Link from "next/link";
@@ -67,7 +57,6 @@ type Props = {
 export function ListTransactionsTable({ transactions }: Props) {
   const [updating, setUpdating] = useState<string | null>(null);
   const [trx, setTrx] = useState<Transaction | null>(null);
-  // const { isOpened, toggle, close } = useDisclosure({ initialState: false });
   const { pathname, createQueryString } = useParams();
   const [opened, setOpened] = useState(false);
 
@@ -76,7 +65,7 @@ export function ListTransactionsTable({ transactions }: Props) {
   const remove = useServerAction(deleteTranasctionAction, {
     onSuccess: () => {
       setUpdating(null);
-      close();
+      setOpened(false);
     },
   });
 

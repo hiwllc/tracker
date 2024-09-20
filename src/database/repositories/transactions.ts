@@ -115,10 +115,12 @@ export const Transactions = {
       isFilteredByUnpaid,
     });
 
-    return [...result, ...virtualized].map(({ category, ...transacation }) => ({
-      category: category as Pick<Category, "name" | "id">,
-      ...transacation,
-    }));
+    return [...result, ...virtualized]
+      .map(({ category, ...transacation }) => ({
+        category: category as Pick<Category, "name" | "id">,
+        ...transacation,
+      }))
+      .sort((a, b) => a.dueAt.getTime() - b.dueAt.getTime());
   },
 
   /**

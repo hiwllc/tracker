@@ -56,6 +56,7 @@ export function ModalContent(
     return <DialogContent {...props} />;
   }
 
+  // @ts-expect-error drawer content has incompatible props
   return <DrawerContent {...props} />;
 }
 

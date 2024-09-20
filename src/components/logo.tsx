@@ -6,9 +6,9 @@ import { usePathname } from "next/navigation";
 
 export function Logo() {
   const pathname = usePathname();
-  const url = pathname.startsWith(`/dashboard`)
+  const url = pathname.startsWith("/dashboard")
     ? `/dashboard?date=${startOfMonth(new Date()).toISOString()}&status=unpaid&category=all`
-    : `/`;
+    : "/";
 
   return (
     <h1 className="font-mono text-sm font-medium">
